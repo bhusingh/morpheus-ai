@@ -151,22 +151,38 @@ def _check_directive_compliance(
     return None
 
 
+def extract_hook_text(raw_input: str) -> str:
+    """Extract scannable text from hook JSON (or return raw if not JSON).
+
+    Handles two Claude Code hook formats:
+    - PreToolUse: {"tool_name": "...", "tool_input": {...}}
+    - Stop: {"last_assistant_message": "..."}
+    """
+    try:
+        data = json.loads(raw_input)
+    except (json.JSONDecodeError, TypeError):
+        return raw_input
+
+    if not isinstance(data, dict):
+        return raw_input
+
+    # Stop hook: scan Claude's conversational response
+    assistant_msg = data.get("last_assistant_message")
+    if assistant_msg and isinstance(assistant_msg, str):
+        return assistant_msg
+
+    # PreToolUse hook: scan tool input fields
+    tool_input = data.get("tool_input", data)
+    text_parts = _extract_strings(tool_input)
+    return "\n".join(text_parts)
+
+
 def check_hook_input(
     raw_input: str,
     rules: list[Rule],
     instructions: list[str] | None = None,
 ) -> list[Violation]:
-    try:
-        data = json.loads(raw_input)
-    except (json.JSONDecodeError, TypeError):
-        return check_text(raw_input, rules, instructions=instructions)
-
-    if not isinstance(data, dict):
-        return check_text(raw_input, rules, instructions=instructions)
-
-    tool_input = data.get("tool_input", data)
-    text_parts = _extract_strings(tool_input)
-    combined = "\n".join(text_parts)
+    combined = extract_hook_text(raw_input)
     return check_text(combined, rules, instructions=instructions)
 
 

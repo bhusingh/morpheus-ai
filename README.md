@@ -105,12 +105,23 @@ Add to `.claude/settings.json`:
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "morpheus-ai check --stdin --pack strict"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-When Claude tries to write lazy output, the hook blocks the action before it executes.
+- **PreToolUse** — scans code Claude is about to write (catches placeholder code, ellipsis truncation, TODO stubs)
+- **Stop** — scans Claude's conversational response (catches scope reduction, option offering, deferral, test skipping)
 
 ### As a Python library
 
@@ -279,6 +290,12 @@ The tool walks up from the current directory to find `.morpheus-ai.yaml`, so it 
   "hooks": {
     "PreToolUse": [{
       "matcher": ".*",
+      "hooks": [{
+        "type": "command",
+        "command": "morpheus-ai check --pack strict --stdin --format json"
+      }]
+    }],
+    "Stop": [{
       "hooks": [{
         "type": "command",
         "command": "morpheus-ai check --pack strict --stdin --format json"

@@ -2,7 +2,13 @@
 
 import json
 
-from morpheus_ai.engine import check_hook_input, check_text, load_rules, max_severity
+from morpheus_ai.engine import (
+    check_hook_input,
+    check_text,
+    extract_hook_text,
+    load_rules,
+    max_severity,
+)
 from morpheus_ai.rules import Severity, load_pack
 
 
@@ -184,6 +190,53 @@ class TestCheckHookInput:
     def test_json_null_input(self):
         violations = check_hook_input("null", self.rules)
         assert len(violations) == 0
+
+    def test_stop_hook_last_assistant_message(self):
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "We could just skip the tests for now.",
+            "session_id": "abc123",
+        })
+        violations = check_hook_input(data, self.rules)
+        assert any(v.rule.name == "no-scope-reduction" for v in violations)
+        assert any(v.rule.name == "no-test-skipping" for v in violations)
+
+    def test_stop_hook_clean_message(self):
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "I've implemented all the changes with tests.",
+            "session_id": "abc123",
+        })
+        violations = check_hook_input(data, self.rules)
+        assert len(violations) == 0
+
+    def test_stop_hook_option_offering(self):
+        data = json.dumps({
+            "last_assistant_message": (
+                "Here are a few approaches:\n"
+                "Option A: Quick fix\n"
+                "Option B: Full rewrite\n"
+                "Which do you prefer?"
+            ),
+        })
+        violations = check_hook_input(data, self.rules)
+        assert any(v.rule.name == "no-option-offering" for v in violations)
+
+    def test_extract_hook_text_stop_payload(self):
+        data = json.dumps({
+            "last_assistant_message": "Should I proceed with the changes?",
+            "session_id": "abc",
+        })
+        text = extract_hook_text(data)
+        assert text == "Should I proceed with the changes?"
+
+    def test_extract_hook_text_pretooluse_payload(self):
+        data = json.dumps({
+            "tool_name": "Write",
+            "tool_input": {"content": "hello world", "file_path": "/tmp/x"},
+        })
+        text = extract_hook_text(data)
+        assert "hello world" in text
 
 
 class TestInstructionCompliance:

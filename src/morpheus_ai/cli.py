@@ -10,7 +10,12 @@ import click
 from morpheus_ai.audit import clear as audit_clear
 from morpheus_ai.audit import read_entries, write_entry
 from morpheus_ai.config import load_config
-from morpheus_ai.engine import check_hook_input, check_text, load_rules, max_severity
+from morpheus_ai.engine import (
+    check_text,
+    extract_hook_text,
+    load_rules,
+    max_severity,
+)
 from morpheus_ai.reporter import report
 from morpheus_ai.rules import Severity
 from morpheus_ai.stats import Stats
@@ -57,7 +62,9 @@ def check(
     instructions = _load_instructions(instructions_path, cfg)
 
     if use_stdin:
-        violations = check_hook_input(text, rules, instructions=instructions)
+        violations = check_text(
+            extract_hook_text(text), rules, instructions=instructions,
+        )
     else:
         violations = check_text(text, rules, instructions=instructions)
 
