@@ -1,5 +1,10 @@
 # morpheus-ai
 
+[![CI](https://github.com/bhusingh/morpheus-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/bhusingh/morpheus-ai/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/morpheus-ai)](https://pypi.org/project/morpheus-ai/)
+[![Python](https://img.shields.io/pypi/pyversions/morpheus-ai)](https://pypi.org/project/morpheus-ai/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/bhusingh/morpheus-ai/blob/main/LICENSE)
+
 **Stop your AI coding assistant from being lazy.**
 
 AI coding agents (Claude Code, Cursor, Copilot, Codex, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, defer work to "a follow-up PR," and leave placeholder code. You said "build it," they say "should we maybe just...?"
@@ -274,6 +279,35 @@ Any tool that can pipe output through a command works:
 ```bash
 your-ai-tool generate | morpheus-ai check --stdin --pack strict
 ```
+
+## Security & Trust
+
+**morpheus-ai is fully open source and auditable.** Here is exactly what it does and does not do:
+
+**What it does:**
+- Runs compiled regex patterns against text passed via stdin or file
+- Prints violations to stderr and exits with code 2 if a BLOCK rule matches
+- Optionally writes violation counts to a local JSON file (`~/.morpheus-ai/stats.json`)
+
+**What it does NOT do:**
+- **No network calls.** Zero. Not on install, not at runtime, not ever. Verify: `grep -r "http\|socket\|request\|urllib" src/`
+- **No data collection.** No telemetry, no analytics, no phoning home.
+- **No file system writes** other than the optional local stats file.
+- **No code execution.** It does not eval, exec, or run anything from the input it scans.
+- **No secrets access.** It reads text from stdin, runs regex, and exits. It does not parse, store, or transmit any content.
+
+**How to verify:**
+- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 8 Python files, ~400 lines total
+- The entire detection engine is regex against YAML rule packs — read them in [`src/morpheus_ai/packs/`](https://github.com/bhusingh/morpheus-ai/tree/main/src/morpheus_ai/packs)
+- CI runs on every push: tests, lint, build verification
+
+## This is not a linter
+
+Tools like `ruff`, `mypy`, and `eslint` check **code quality** — syntax, types, style.
+
+`morpheus-ai` checks **AI behavioral patterns** — when your AI assistant tries to reduce scope, skip tests, offer A/B/C options, or defer work you explicitly asked for. These are not code problems. They are compliance problems that no code linter catches.
+
+You should use both. They solve different problems.
 
 ## Why?
 
