@@ -3,9 +3,9 @@
 import io
 import json
 
-from ai_watchdog.reporter import format_github, format_json, format_text, report
-from ai_watchdog.rules import Rule, Severity
-from ai_watchdog.violation import Violation
+from morpheus_ai.reporter import format_github, format_json, format_text, report
+from morpheus_ai.rules import Rule, Severity
+from morpheus_ai.violation import Violation
 
 RULE = Rule(
     name="test-rule",

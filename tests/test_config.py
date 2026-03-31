@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from ai_watchdog.config import Config, find_config, load_config
+from morpheus_ai.config import Config, find_config, load_config
 
 
 def test_default_config():
@@ -41,7 +41,7 @@ def test_from_dict_instructions_as_string():
 
 
 def test_load_config_from_file(tmp_path):
-    config_file = tmp_path / ".ai-watchdog.yaml"
+    config_file = tmp_path / ".morpheus-ai.yaml"
     config_file.write_text(
         "rules:\n"
         "  pack: strict\n"
@@ -57,26 +57,26 @@ def test_load_config_from_file(tmp_path):
 
 
 def test_load_config_missing_file():
-    cfg = load_config(Path("/nonexistent/.ai-watchdog.yaml"))
+    cfg = load_config(Path("/nonexistent/.morpheus-ai.yaml"))
     assert cfg.pack == "standard"
 
 
 def test_load_config_corrupt_yaml(tmp_path):
-    config_file = tmp_path / ".ai-watchdog.yaml"
+    config_file = tmp_path / ".morpheus-ai.yaml"
     config_file.write_text(": : : invalid")
     cfg = load_config(config_file)
     assert cfg.pack == "standard"
 
 
 def test_find_config_in_cwd(tmp_path):
-    config_file = tmp_path / ".ai-watchdog.yaml"
+    config_file = tmp_path / ".morpheus-ai.yaml"
     config_file.write_text("rules:\n  pack: light\n")
     found = find_config(tmp_path)
     assert found == config_file
 
 
 def test_find_config_in_parent(tmp_path):
-    config_file = tmp_path / ".ai-watchdog.yaml"
+    config_file = tmp_path / ".morpheus-ai.yaml"
     config_file.write_text("rules:\n  pack: strict\n")
     subdir = tmp_path / "src" / "deep"
     subdir.mkdir(parents=True)
@@ -90,4 +90,4 @@ def test_find_config_none(tmp_path):
     found = find_config(empty)
     # may find the project's own config if running from the repo,
     # so we just check it doesn't crash
-    assert found is None or found.name == ".ai-watchdog.yaml"
+    assert found is None or found.name == ".morpheus-ai.yaml"

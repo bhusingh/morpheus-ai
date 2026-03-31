@@ -2,8 +2,8 @@
 
 import json
 
-from ai_watchdog.engine import check_hook_input, check_text, load_rules, max_severity
-from ai_watchdog.rules import Severity, load_pack
+from morpheus_ai.engine import check_hook_input, check_text, load_rules, max_severity
+from morpheus_ai.rules import Severity, load_pack
 
 
 class TestCheckText:

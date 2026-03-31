@@ -1,5 +1,5 @@
 # Light rule pack — only catches the most blatant shortcuts
-# Good for teams new to ai-watchdog
+# Good for teams new to morpheus-ai
 
 rules:
   - name: no-scope-reduction

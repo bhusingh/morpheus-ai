@@ -6,8 +6,8 @@ import json
 import re
 from pathlib import Path
 
-from ai_watchdog.rules import Rule, Severity, load_pack, load_rules_from_yaml
-from ai_watchdog.violation import Violation
+from morpheus_ai.rules import Rule, Severity, load_pack, load_rules_from_yaml
+from morpheus_ai.violation import Violation
 
 _MAX_MATCHED_TEXT = 200
 _MAX_RECURSION_DEPTH = 50

@@ -3,13 +3,13 @@
 import pytest
 from click.testing import CliRunner
 
-import ai_watchdog.stats as stats_module
-from ai_watchdog.cli import main
+import morpheus_ai.stats as stats_module
+from morpheus_ai.cli import main
 
 
 @pytest.fixture(autouse=True)
 def _isolate_stats(tmp_path, monkeypatch):
-    """Redirect stats to a temp directory so tests never touch ~/.ai-watchdog/."""
+    """Redirect stats to a temp directory so tests never touch ~/.morpheus-ai/."""
     monkeypatch.setattr(stats_module, "DEFAULT_STATS_PATH", tmp_path / "stats.json")
 
 
@@ -88,7 +88,7 @@ class TestConfigIntegration:
     def test_config_sets_pack(self, tmp_path, monkeypatch):
         """Config file pack setting is used when --pack is not given."""
         monkeypatch.chdir(tmp_path)
-        config = tmp_path / ".ai-watchdog.yaml"
+        config = tmp_path / ".morpheus-ai.yaml"
         config.write_text("rules:\n  pack: strict\n")
         f = tmp_path / "input.txt"
         f.write_text("We could just skip it for now.")
@@ -100,7 +100,7 @@ class TestConfigIntegration:
     def test_cli_flag_overrides_config(self, tmp_path, monkeypatch):
         """--pack flag overrides config file."""
         monkeypatch.chdir(tmp_path)
-        config = tmp_path / ".ai-watchdog.yaml"
+        config = tmp_path / ".morpheus-ai.yaml"
         config.write_text("rules:\n  pack: strict\n")
         runner = CliRunner()
         result = runner.invoke(
@@ -126,7 +126,7 @@ class TestInitCommand:
         runner = CliRunner()
         result = runner.invoke(main, ["init"])
         assert result.exit_code == 0
-        assert (tmp_path / ".ai-watchdog.yaml").exists()
+        assert (tmp_path / ".morpheus-ai.yaml").exists()
         assert (tmp_path / "rules" / "custom.yaml").exists()
 
     def test_init_idempotent(self, tmp_path, monkeypatch):

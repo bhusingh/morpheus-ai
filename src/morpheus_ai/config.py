@@ -1,4 +1,4 @@
-"""Load .ai-watchdog.yaml project config."""
+"""Load .morpheus-ai.yaml project config."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-CONFIG_FILENAME = ".ai-watchdog.yaml"
+CONFIG_FILENAME = ".morpheus-ai.yaml"
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class Config:
 
 
 def find_config(start: Path | None = None) -> Path | None:
-    """Walk up from start (or cwd) looking for .ai-watchdog.yaml."""
+    """Walk up from start (or cwd) looking for .morpheus-ai.yaml."""
     current = (start or Path.cwd()).resolve()
     for directory in [current, *current.parents]:
         candidate = directory / CONFIG_FILENAME

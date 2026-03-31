@@ -1,4 +1,4 @@
-# ai-watchdog configuration for this project itself.
+# morpheus-ai configuration for this project itself.
 
 rules:
   pack: strict

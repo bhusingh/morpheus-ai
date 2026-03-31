@@ -1,5 +1,5 @@
 # Strict rule pack — catches all lazy AI patterns
-# Use: ai-watchdog check --pack strict --stdin
+# Use: morpheus-ai check --pack strict --stdin
 
 rules:
   - name: no-scope-reduction

@@ -1,10 +1,10 @@
-# ai-watchdog
+# morpheus-ai
 
 **Stop your AI coding assistant from being lazy.**
 
 AI coding agents (Claude Code, Cursor, Copilot, Codex, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, defer work to "a follow-up PR," and leave placeholder code. You said "build it," they say "should we maybe just...?"
 
-`ai-watchdog` catches this in real-time and blocks it.
+`morpheus-ai` catches this in real-time and blocks it.
 
 ## The Problem
 
@@ -19,7 +19,7 @@ Tests can be added later in a follow-up PR."
 
 **No.** You said build it. All of it. With tests.
 
-### What ai-watchdog catches
+### What morpheus-ai catches
 
 | Pattern | Example | Severity |
 |---------|---------|----------|
@@ -46,13 +46,13 @@ Tests can be added later in a follow-up PR."
 ## Install
 
 ```bash
-pip install ai-watchdog
+pip install morpheus-ai
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv pip install ai-watchdog
+uv pip install morpheus-ai
 ```
 
 **Requirements:** Python 3.10+ | **Dependencies:** click, pyyaml (no ML, no GPU, no network calls)
@@ -62,8 +62,8 @@ uv pip install ai-watchdog
 ### Check AI output from the command line
 
 ```bash
-# Pipe text through ai-watchdog
-echo "We could just skip the tests for now" | ai-watchdog check --stdin --pack strict
+# Pipe text through morpheus-ai
+echo "We could just skip the tests for now" | morpheus-ai check --stdin --pack strict
 
 # Output (exit code 2 = blocked):
 # [BLOCK] no-scope-reduction (line 1): Agent must not suggest skipping, deferring, or reducing requested scope
@@ -74,13 +74,13 @@ echo "We could just skip the tests for now" | ai-watchdog check --stdin --pack s
 #   matched: "skip the tests"
 
 # Check a file
-ai-watchdog check --pack strict response.txt
+morpheus-ai check --pack strict response.txt
 
 # JSON output for programmatic use
-echo "Option A: fast\nOption B: slow" | ai-watchdog check --stdin --format json
+echo "Option A: fast\nOption B: slow" | morpheus-ai check --stdin --format json
 
 # GitHub Actions annotation format
-ai-watchdog check --stdin --format github < response.txt
+morpheus-ai check --stdin --format github < response.txt
 ```
 
 ### As a Claude Code hook (real-time blocking)
@@ -96,7 +96,7 @@ Add to `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "ai-watchdog check --stdin --pack strict"
+            "command": "morpheus-ai check --stdin --pack strict"
           }
         ]
       }
@@ -110,7 +110,7 @@ When Claude tries to write lazy output, the hook blocks the action before it exe
 ### As a Python library
 
 ```python
-from ai_watchdog import check_text, load_rules, Severity
+from morpheus_ai import check_text, load_rules, Severity
 
 rules = load_rules(pack="strict")
 violations = check_text("We could just skip the tests for now", rules)
@@ -136,9 +136,9 @@ Three built-in packs with increasing strictness:
 | **`strict`** | 18 rules | Zero tolerance. Catches everything |
 
 ```bash
-ai-watchdog check --pack strict --stdin    # strictest
-ai-watchdog check --pack standard --stdin  # default
-ai-watchdog check --pack light --stdin     # gentlest
+morpheus-ai check --pack strict --stdin    # strictest
+morpheus-ai check --pack standard --stdin  # default
+morpheus-ai check --pack light --stdin     # gentlest
 ```
 
 ### Custom rules
@@ -157,13 +157,13 @@ rules:
 
 ```bash
 # Use a pack + custom rules (merged)
-ai-watchdog check --pack standard --rules ./rules/ --stdin
+morpheus-ai check --pack standard --rules ./rules/ --stdin
 
 # Enforce instruction files (CLAUDE.md, .cursorrules)
-ai-watchdog check --stdin --instructions CLAUDE.md --pack strict
+morpheus-ai check --stdin --instructions CLAUDE.md --pack strict
 
 # Initialize a project with example config and rules
-ai-watchdog init
+morpheus-ai init
 ```
 
 ## How It Works
@@ -192,10 +192,10 @@ Speed: **sub-100ms per check** including Python startup (regex only, no ML, no n
 
 ## Statistics
 
-ai-watchdog tracks violation frequency across checks:
+morpheus-ai tracks violation frequency across checks:
 
 ```bash
-$ ai-watchdog stats
+$ morpheus-ai stats
 
 Total checks:     142
 Total violations: 23
@@ -212,17 +212,17 @@ By severity:
   WARN: 4
   INFO: 2
 
-$ ai-watchdog stats --format json   # machine-readable
+$ morpheus-ai stats --format json   # machine-readable
 ```
 
-Stats persist to `~/.ai-watchdog/stats.json`.
+Stats persist to `~/.morpheus-ai/stats.json`.
 
 ## Configuration
 
-Create a `.ai-watchdog.yaml` in your project root (or run `ai-watchdog init`). CLI flags override config values.
+Create a `.morpheus-ai.yaml` in your project root (or run `morpheus-ai init`). CLI flags override config values.
 
 ```yaml
-# .ai-watchdog.yaml
+# .morpheus-ai.yaml
 rules:
   pack: standard          # strict, standard, light
   # custom: ./rules/      # path to custom rules directory
@@ -238,7 +238,7 @@ stats:
   enabled: true           # track violation frequency
 ```
 
-The tool walks up from the current directory to find `.ai-watchdog.yaml`, so it works from any subdirectory.
+The tool walks up from the current directory to find `.morpheus-ai.yaml`, so it works from any subdirectory.
 
 ## Integration Examples
 
@@ -251,7 +251,7 @@ The tool walks up from the current directory to find `.ai-watchdog.yaml`, so it 
       "matcher": ".*",
       "hooks": [{
         "type": "command",
-        "command": "ai-watchdog check --pack strict --stdin --format json"
+        "command": "morpheus-ai check --pack strict --stdin --format json"
       }]
     }]
   }
@@ -263,8 +263,8 @@ The tool walks up from the current directory to find `.ai-watchdog.yaml`, so it 
 ```yaml
 - name: Check AI output
   run: |
-    pip install ai-watchdog
-    ai-watchdog check --pack strict --format github response.txt
+    pip install morpheus-ai
+    morpheus-ai check --pack strict --format github response.txt
 ```
 
 ### Generic hook (any AI tool)
@@ -272,14 +272,14 @@ The tool walks up from the current directory to find `.ai-watchdog.yaml`, so it 
 Any tool that can pipe output through a command works:
 
 ```bash
-your-ai-tool generate | ai-watchdog check --stdin --pack strict
+your-ai-tool generate | morpheus-ai check --stdin --pack strict
 ```
 
 ## Why?
 
 AI coding assistants are incredibly capable but have a systematic problem: **they optimize for appearing helpful over being helpful.** Offering options feels collaborative. Suggesting shortcuts feels considerate. But when you've already decided what to build, these behaviors waste time and erode trust.
 
-The fix isn't better prompting — it's enforcement. `ai-watchdog` is that enforcement layer.
+The fix isn't better prompting — it's enforcement. `morpheus-ai` is that enforcement layer.
 
 ## Contributing
 

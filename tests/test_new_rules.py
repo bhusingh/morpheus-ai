@@ -1,7 +1,7 @@
 """Tests for rule patterns — positive, negative, and cross-pack."""
 
-from ai_watchdog.engine import check_text
-from ai_watchdog.rules import load_pack
+from morpheus_ai.engine import check_text
+from morpheus_ai.rules import load_pack
 
 
 class TestTestSkipping:

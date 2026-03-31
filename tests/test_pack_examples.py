@@ -8,7 +8,7 @@ import yaml
 
 
 def _load_pack_data(name: str) -> list[dict]:
-    pack_dir = Path(__file__).parent.parent / "src" / "ai_watchdog" / "packs"
+    pack_dir = Path(__file__).parent.parent / "src" / "morpheus_ai" / "packs"
     path = pack_dir / f"{name}.yaml"
     data = yaml.safe_load(path.read_text())
     return data.get("rules", [])

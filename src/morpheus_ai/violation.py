@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai_watchdog.rules import Rule, Severity
+from morpheus_ai.rules import Rule, Severity
 
 
 @dataclass(frozen=True)

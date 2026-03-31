@@ -7,17 +7,17 @@ from pathlib import Path
 
 import click
 
-from ai_watchdog.config import load_config
-from ai_watchdog.engine import check_hook_input, check_text, load_rules, max_severity
-from ai_watchdog.reporter import report
-from ai_watchdog.rules import Severity
-from ai_watchdog.stats import Stats
+from morpheus_ai.config import load_config
+from morpheus_ai.engine import check_hook_input, check_text, load_rules, max_severity
+from morpheus_ai.reporter import report
+from morpheus_ai.rules import Severity
+from morpheus_ai.stats import Stats
 
 
 @click.group()
-@click.version_option(package_name="ai-watchdog")
+@click.version_option(package_name="morpheus-ai")
 def main() -> None:
-    """ai-watchdog — stop your AI coding assistant from being lazy."""
+    """morpheus-ai — stop your AI coding assistant from being lazy."""
 
 
 @main.command()
@@ -129,8 +129,8 @@ def stats(fmt: str) -> None:
 
 @main.command()
 def init() -> None:
-    """Create .ai-watchdog.yaml and example rules in the current directory."""
-    config_path = Path(".ai-watchdog.yaml")
+    """Create .morpheus-ai.yaml and example rules in the current directory."""
+    config_path = Path(".morpheus-ai.yaml")
     rules_path = Path("rules")
     try:
         _do_init(config_path, rules_path)
@@ -144,7 +144,7 @@ def _do_init(config_path: Path, rules_path: Path) -> None:
         click.echo(f"{config_path} already exists, skipping.")
     else:
         config_path.write_text(
-            "# ai-watchdog configuration\n"
+            "# morpheus-ai configuration\n"
             "# CLI flags override these defaults.\n"
             "\n"
             "rules:\n"

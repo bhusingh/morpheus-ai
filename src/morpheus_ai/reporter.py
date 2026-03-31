@@ -7,7 +7,7 @@ import re
 import sys
 from typing import TextIO
 
-from ai_watchdog.violation import Violation
+from morpheus_ai.violation import Violation
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _GITHUB_SEVERITY = {"BLOCK": "error", "WARN": "warning", "INFO": "notice"}

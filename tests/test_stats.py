@@ -1,8 +1,8 @@
 """Tests for stats persistence, corruption tolerance, and recording."""
 
-from ai_watchdog.rules import Rule, Severity
-from ai_watchdog.stats import Stats
-from ai_watchdog.violation import Violation
+from morpheus_ai.rules import Rule, Severity
+from morpheus_ai.stats import Stats
+from morpheus_ai.violation import Violation
 
 
 def _make_violation(name: str = "test-rule", severity: Severity = Severity.BLOCK) -> Violation:

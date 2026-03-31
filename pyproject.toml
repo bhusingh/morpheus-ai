@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ai-watchdog"
+name = "morpheus-ai"
 version = "0.1.0"
 description = "Stop your AI coding assistant from being lazy. Catches scope reduction, option offering, deferral, and instruction violations in real-time."
 readme = "README.md"
@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 authors = [
     { name = "Bhupendra Singh" },
 ]
-keywords = ["ai", "claude", "copilot", "cursor", "watchdog", "linting", "coding-assistant"]
+keywords = ["ai", "claude", "copilot", "cursor", "morpheus", "linting", "coding-assistant"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -37,12 +37,12 @@ dev = [
 ]
 
 [project.scripts]
-ai-watchdog = "ai_watchdog.cli:main"
+morpheus-ai = "morpheus_ai.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/bhusingh/ai-watchdog"
-Repository = "https://github.com/bhusingh/ai-watchdog"
-Issues = "https://github.com/bhusingh/ai-watchdog/issues"
+Homepage = "https://github.com/bhusingh/morpheus-ai"
+Repository = "https://github.com/bhusingh/morpheus-ai"
+Issues = "https://github.com/bhusingh/morpheus-ai/issues"
 
 [tool.ruff]
 line-length = 100

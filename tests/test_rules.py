@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_watchdog.rules import Rule, Severity, load_pack, load_rules_from_yaml
+from morpheus_ai.rules import Rule, Severity, load_pack, load_rules_from_yaml
 
 
 def test_load_strict_pack():

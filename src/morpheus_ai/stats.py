@@ -8,15 +8,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_watchdog.violation import Violation
+from morpheus_ai.violation import Violation
 
 
 def _default_stats_path() -> Path:
     try:
-        return Path.home() / ".ai-watchdog" / "stats.json"
+        return Path.home() / ".morpheus-ai" / "stats.json"
     except RuntimeError:
         import tempfile
-        return Path(tempfile.gettempdir()) / ".ai-watchdog" / "stats.json"
+        return Path(tempfile.gettempdir()) / ".morpheus-ai" / "stats.json"
 
 
 DEFAULT_STATS_PATH = _default_stats_path()

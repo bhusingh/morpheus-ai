@@ -1,8 +1,8 @@
-# ai-watchdog — Project Instructions
+# morpheus-ai — Project Instructions
 
 ## What this project is
 
-`ai-watchdog` is a fast Python CLI tool and library for detecting lazy AI-assistant behavior such as:
+`morpheus-ai` is a fast Python CLI tool and library for detecting lazy AI-assistant behavior such as:
 - scope reduction
 - option offering
 - deferral
@@ -15,11 +15,11 @@ The product is intentionally lightweight: regex- and heuristic-based, fast enoug
 ## Current architecture
 
 ```text
-src/ai_watchdog/
+src/morpheus_ai/
   __init__.py          # Public API exports
-  __main__.py          # python -m ai_watchdog entrypoint
+  __main__.py          # python -m morpheus_ai entrypoint
   cli.py               # Click CLI: check, stats, init
-  config.py            # Loads .ai-watchdog.yaml from cwd/parents
+  config.py            # Loads .morpheus-ai.yaml from cwd/parents
   engine.py            # Rule loading, text scanning, hook parsing
   reporter.py          # text/json/github output formatting
   rules.py             # Rule model, YAML loading, pack loading
@@ -54,16 +54,16 @@ tests/
 ### CLI commands
 
 ```text
-ai-watchdog check [--stdin] [--pack NAME] [--rules DIR] [--instructions PATH]
+morpheus-ai check [--stdin] [--pack NAME] [--rules DIR] [--instructions PATH]
                   [--format text|json|github] [--no-stats] [FILE]
-ai-watchdog stats [--format text|json]
-ai-watchdog init
-python -m ai_watchdog ...
+morpheus-ai stats [--format text|json]
+morpheus-ai init
+python -m morpheus_ai ...
 ```
 
 ### Config
 
-The tool supports `.ai-watchdog.yaml`, discovered by walking upward from the current directory.
+The tool supports `.morpheus-ai.yaml`, discovered by walking upward from the current directory.
 
 Supported config keys:
 
