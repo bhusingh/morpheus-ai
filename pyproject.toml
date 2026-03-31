@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "morpheus-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = "Stop your AI coding assistant from being lazy. Catches scope reduction, option offering, deferral, and instruction violations in real-time."
 readme = "README.md"
 license = "MIT"
