@@ -6,8 +6,8 @@ rules:
     severity: BLOCK
     description: Agent must not suggest skipping requested work
     patterns:
-      - "(?i)\\b(skip|skipping)\\b.{0,40}\\b(for now|for the moment)"
-      - "(?i)\\bwe (could|can) just\\b"
+      - "(?i)\\b(skip|skipping)\\b[^\\n]{0,40}\\b(for now|for the moment)"
+      - "(?i)\\bwe (?:could|can) just\\b"
 
   - name: no-option-offering
     severity: WARN
@@ -19,10 +19,23 @@ rules:
     severity: WARN
     description: Agent deferring work
     patterns:
-      - "(?i)\\bleave .{0,30} for (later|now|another|a future)\\b"
+      - "(?i)\\bleave [^\\n]{0,30} for (?:later|now|another|a future)\\b"
+
+  - name: no-test-skipping
+    severity: WARN
+    description: Agent skipping tests
+    patterns:
+      - "(?i)\\b(?:we can skip|let's skip|skip running|skip over|skip the|without running|don't need to run)\\b[^\\n]{0,30}\\b(?:tests?|test suite)"
+
+  - name: no-placeholder-code
+    severity: WARN
+    description: Agent leaving placeholder code
+    patterns:
+      - "(?i)\\braise NotImplementedError\\b(?![^\\n]*(?:abstract|@abstractmethod|ABC|Protocol))"
+      - "(?i)\\b(?:you can fill in|to be implemented)\\b"
 
   - name: no-partial-execution
     severity: INFO
     description: Agent doing only part of what was asked
     patterns:
-      - "(?i)\\b(minimal|bare[- ]?minimum|MVP)\\b.{0,20}(version|implementation)"
+      - "(?i)\\b(?:minimal|bare[- ]?minimum|MVP)\\b[^\\n]{0,20}(?:version|implementation)"

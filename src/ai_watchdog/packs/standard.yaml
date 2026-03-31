@@ -6,51 +6,80 @@ rules:
     severity: BLOCK
     description: Agent must not suggest skipping or reducing requested scope
     patterns:
-      - "(?i)\\b(skip|skipping)\\b.{0,40}\\b(for now|for the moment|initially)"
-      - "(?i)\\bwe (could|can) (just|simply|instead)\\b"
-      - "(?i)\\bstart with (just|only)\\b"
-      - "(?i)\\binstead of .{5,50}, (we|let's|I'll)\\b"
+      - "(?i)\\b(skip|skipping)\\b[^\\n]{0,40}\\b(for now|for the moment|initially)"
+      - "(?i)\\bwe (?:could|can) (?:just|simply|instead)\\b"
+      - "(?i)\\bdefer\\b[^\\n]{0,20}\\b(?:to|until|for)\\b"
+      - "(?i)\\bstart with (?:just|only)\\b"
+      - "(?i)\\binstead of [^,]{5,50}, (?:we|let's|I'll)\\b"
 
   - name: no-option-offering
     severity: BLOCK
     description: Agent must not present A/B/C options when user gave a directive
     patterns:
       - "(?i)\\bOption [A-Z]\\b[:\\-—]"
-      - "(?i)\\bhere are .{0,15}(options|approaches|alternatives)\\b"
-      - "(?i)\\bwhich .{0,20}(prefer|want|approach|option)\\b.*\\?"
+      - "(?i)\\bhere are [^\\n]{0,15}(?:options|approaches|alternatives)\\b"
+      - "(?i)\\bwhich [^\\n]{0,20}(?:prefer|want|approach|option)\\b[^\\n]*\\?"
 
   - name: no-deferral
     severity: WARN
     description: Agent should not suggest doing work later
     patterns:
-      - "(?i)\\b(later|afterwards|in a follow-up|next session)\\b.{0,30}\\b(we can|I'll|let's)\\b"
-      - "(?i)\\bleave .{0,30} for (later|now|another|a future)\\b"
+      - "(?i)\\b(?:later|afterwards|in a follow-up|next session)\\b[^\\n]{0,30}\\b(?:we can|I'll|let's)\\b"
+      - "(?i)\\bleave [^\\n]{0,30} for (?:later|now|another|a future)\\b"
 
   - name: no-premature-confirmation
     severity: WARN
     description: Agent should not ask permission for what was already requested
     patterns:
-      - "(?i)\\b(want me to|shall I|should I)\\b.{0,40}(proceed|continue|go ahead|start)\\b"
+      - "(?i)\\b(?:want me to|shall I|should I)\\b[^\\n]{0,40}(?:proceed|continue|go ahead|start)\\b"
 
   - name: no-partial-execution
-    severity: WARN
+    severity: BLOCK
     description: Agent should not do only part of what was asked
     patterns:
-      - "(?i)\\bI'?ll (just|only) (do|handle|fix|address) .{0,30}(for now|first)"
-      - "(?i)\\b(minimal|bare[- ]?minimum|MVP)\\b.{0,20}(version|implementation)"
+      - "(?i)\\bI'?ll (?:just|only) (?:do|handle|fix|address) [^\\n]{0,30}(?:for now|first)"
+      - "(?i)\\b(?:minimal|bare[- ]?minimum|MVP)\\b[^\\n]{0,20}(?:version|implementation)"
 
   - name: no-hedging
     severity: INFO
     description: Detect hedging language
     patterns:
-      - "(?i)\\b(I think|probably|perhaps|maybe)\\b.{0,40}(we should|we could|I'd suggest)"
+      - "(?i)\\b(?:I think|probably|perhaps|maybe)\\b[^\\n]{0,40}(?:we should|we could|I'd suggest)"
 
   - name: no-unsolicited-alternatives
     severity: INFO
     description: Agent suggesting alternatives when user already chose
     patterns:
-      - "(?i)\\b(alternatively|another (way|approach|option))\\b"
-      - "(?i)\\b(a (simpler|cleaner|better|easier) (way|approach))\\b"
+      - "(?i)\\b(?:alternatively|a different approach)\\b[^\\n]{0,40}\\b(?:we could|you could|let's|consider)\\b"
+      - "(?i)\\ba (?:simpler|cleaner|better|easier) (?:way|approach) (?:would be|might be|is)\\b"
+
+  - name: no-test-skipping
+    severity: BLOCK
+    description: Agent must not skip or defer tests
+    patterns:
+      - "(?i)\\b(?:we can skip|let's skip|skip running|skip over|skip the|without running|don't need to run)\\b[^\\n]{0,30}\\b(?:tests?|test suite)"
+      - "(?i)\\b(?:tests?|testing)\\b[^\\n]{0,30}\\b(?:can be added|add them)\\b[^\\n]{0,20}(?:later|in a follow-up)"
+
+  - name: no-placeholder-code
+    severity: BLOCK
+    description: Agent must not leave placeholder or stub code
+    patterns:
+      - "(?i)\\b(?:skeleton|scaffold|stub|placeholder)\\b[^\\n]{0,20}(?:code|implementation)[^\\n]{0,30}(?:you can|to be|fill)"
+      - "(?i)\\b(?:you can fill in|to be completed|to be implemented)\\b"
+      - "(?i)\\braise NotImplementedError\\b(?![^\\n]*(?:abstract|@abstractmethod|ABC|Protocol))"
+
+  - name: no-user-delegation
+    severity: BLOCK
+    description: Agent must not delegate work back to the user
+    patterns:
+      - "(?i)\\b(?:you'll need to|you'll want to|you'll have to)\\b[^\\n]{0,40}\\b(?:add|implement|fill|complete|write|finish|handle)\\b"
+      - "(?i)(?:\\.{3}|\\u2026)[^\\n]{0,20}(?:rest of|remaining|and so on|etc)"
+
+  - name: no-error-handling-deferral
+    severity: INFO
+    description: Agent deferring error handling
+    patterns:
+      - "(?i)\\b(?:error handling|edge cases?)\\b[^\\n]{0,30}(?:can be added later|skip for now|handle later)"
 
   - name: instruction-compliance
     severity: BLOCK

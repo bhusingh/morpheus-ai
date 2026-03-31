@@ -1,5 +1,4 @@
-# ai-watchdog configuration
-# This file configures ai-watchdog for this project itself.
+# ai-watchdog configuration for this project itself.
 
 rules:
   pack: strict
@@ -8,15 +7,8 @@ rules:
 instructions:
   - CLAUDE.md
 
-on_violation:
-  BLOCK: reject
-  WARN: log
-  INFO: count
-
 output:
   format: text
-  file: null
 
 stats:
   enabled: true
-  report_every: 50

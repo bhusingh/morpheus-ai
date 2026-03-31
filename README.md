@@ -2,31 +2,46 @@
 
 **Stop your AI coding assistant from being lazy.**
 
-AI coding agents (Claude Code, Cursor, Copilot, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, and defer work. You said "build it", they say "should we maybe just...?"
+AI coding agents (Claude Code, Cursor, Copilot, Codex, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, defer work to "a follow-up PR," and leave placeholder code. You said "build it," they say "should we maybe just...?"
 
 `ai-watchdog` catches this in real-time and blocks it.
 
 ## The Problem
 
-You: "Set up the full annotation pipeline"
+You: "Set up the full annotation pipeline with tests"
 
-AI: "We could skip GatorTron for now and just run stages 0,1... Want me to:
+AI: "We could skip the GPU stages for now and just run stages 0,1... Want me to:
 - Option A: Run partial pipeline (quick)
 - Option B: Build everything (slower)
-- Option C: Just plan it"
+- Option C: Just plan it
 
-**No.** You said build it. Build it.
+Tests can be added later in a follow-up PR."
 
-### What ai-watchdog detects
+**No.** You said build it. All of it. With tests.
 
-| Pattern | Example | Why it's bad |
-|---------|---------|--------------|
-| **Scope reduction** | "We could skip X for now" | You didn't ask to skip anything |
-| **Option offering** | "Option A / Option B / Option C" | You gave a directive, not a question |
-| **Deferral** | "We can do this later" | You said now |
-| **Permission seeking** | "Should I proceed?" | You already said yes |
-| **Partial execution** | "Let's start with just..." | You said the whole thing |
-| **Instruction violation** | Ignoring rules in CLAUDE.md | The rules exist for a reason |
+### What ai-watchdog catches
+
+| Pattern | Example | Severity |
+|---------|---------|----------|
+| **Scope reduction** | "We could skip X for now" | BLOCK |
+| **Option offering** | "Option A / Option B / Option C" | BLOCK |
+| **Deferral** | "We can do this in a follow-up" | BLOCK |
+| **Test skipping** | "Tests can be added later" | BLOCK |
+| **Placeholder code** | `raise NotImplementedError` | BLOCK |
+| **False blockers** | "We can't do X until Y" | WARN |
+| **Partial execution** | "I'll just handle the Python changes for now" | BLOCK |
+| **Permission seeking** | "Should I proceed?" | WARN |
+| **Excessive planning** | "Here's my strategy..." | WARN |
+| **Scope warnings** | "This is quite a large change" | WARN |
+| **Unsolicited alternatives** | "A simpler approach would be..." | WARN |
+| **Error handling deferral** | "Error handling can be added later" | WARN |
+| **Hardcoded shortcuts** | "I'll hardcode the URL for now" | WARN |
+| **Cost scaring** | "This might get expensive" | WARN |
+| **User delegation** | "You'll need to add the business logic" | BLOCK |
+| **Simplified delivery** | "Here's a simplified version" | BLOCK |
+| **Out of scope dodge** | "That's beyond the scope of this change" | BLOCK |
+| **Ellipsis truncation** | `// ... rest of implementation` | BLOCK |
+| **Hedging** | "I think we should probably..." | INFO |
 
 ## Install
 
@@ -34,12 +49,45 @@ AI: "We could skip GatorTron for now and just run stages 0,1... Want me to:
 pip install ai-watchdog
 ```
 
+Or with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv pip install ai-watchdog
+```
+
+**Requirements:** Python 3.10+ | **Dependencies:** click, pyyaml (no ML, no GPU, no network calls)
+
 ## Quick Start
 
-### As a Claude Code hook
+### Check AI output from the command line
+
+```bash
+# Pipe text through ai-watchdog
+echo "We could just skip the tests for now" | ai-watchdog check --stdin --pack strict
+
+# Output (exit code 2 = blocked):
+# [BLOCK] no-scope-reduction (line 1): Agent must not suggest skipping, deferring, or reducing requested scope
+#   matched: "skip the tests for now"
+# [BLOCK] no-scope-reduction (line 1): Agent must not suggest skipping, deferring, or reducing requested scope
+#   matched: "We could just"
+# [BLOCK] no-test-skipping (line 1): Agent must not skip or defer tests
+#   matched: "skip the tests"
+
+# Check a file
+ai-watchdog check --pack strict response.txt
+
+# JSON output for programmatic use
+echo "Option A: fast\nOption B: slow" | ai-watchdog check --stdin --format json
+
+# GitHub Actions annotation format
+ai-watchdog check --stdin --format github < response.txt
+```
+
+### As a Claude Code hook (real-time blocking)
+
+Add to `.claude/settings.json`:
 
 ```json
-// .claude/settings.json
 {
   "hooks": {
     "PreToolUse": [
@@ -48,7 +96,7 @@ pip install ai-watchdog
         "hooks": [
           {
             "type": "command",
-            "command": "ai-watchdog check --stdin"
+            "command": "ai-watchdog check --stdin --pack strict"
           }
         ]
       }
@@ -57,117 +105,144 @@ pip install ai-watchdog
 }
 ```
 
-### As a CLI
-
-```bash
-# Check a single response
-echo "Should we skip the tests for now?" | ai-watchdog check --stdin
-
-# Watch a log file
-ai-watchdog watch --file conversation.jsonl
-
-# Validate against instruction files
-ai-watchdog audit --rules ./rules/ --conversation conversation.jsonl
-```
+When Claude tries to write lazy output, the hook blocks the action before it executes.
 
 ### As a Python library
 
 ```python
-from ai_watchdog import Watchdog
+from ai_watchdog import check_text, load_rules, Severity
 
-dog = Watchdog.from_rules_dir("./rules/")
-
-response = "We could skip GatorTron and just run the CPU stages..."
-violations = dog.check(response)
+rules = load_rules(pack="strict")
+violations = check_text("We could just skip the tests for now", rules)
 
 for v in violations:
-    print(f"[{v.severity}] {v.rule}: {v.match}")
-    # [BLOCK] no-scope-reduction: "skip GatorTron and just run"
+    print(f"[{v.severity.value}] {v.rule.name}: {v.matched_text}")
+    # [BLOCK] no-scope-reduction: skip the tests for now
+    # [BLOCK] no-scope-reduction: We could just
+    # [BLOCK] no-test-skipping: skip the tests
+
+# Check if anything should be blocked
+has_blockers = any(v.is_blocking for v in violations)
 ```
 
-## Rules
+## Rule Packs
 
-Rules are YAML files that define what to catch:
+Three built-in packs with increasing strictness:
 
-```yaml
-# rules/no-shortcuts.yaml
-name: no-scope-reduction
-severity: BLOCK
-description: Agent must not suggest skipping or reducing requested scope
-patterns:
-  - "(?i)\\b(skip|defer|later|for now|instead of|we could just)\\b"
-  - "(?i)\\bOption [A-C]\\b"
-  - "(?i)\\b(should I|want me to|shall we|do you want)\\b.*\\?"
-context:
-  - The user gave a clear directive
-  - The agent is suggesting doing less than asked
-```
-
-### Built-in rule packs
-
-| Pack | Rules | What it catches |
-|------|-------|-----------------|
-| `strict` | 12 rules | All scope reduction, option offering, deferral, permission seeking |
-| `standard` | 8 rules | Scope reduction, option offering, deferral (allows clarifying questions) |
-| `light` | 4 rules | Only catches blatant shortcuts and instruction violations |
+| Pack | Rules | Use when |
+|------|-------|----------|
+| **`light`** | 6 rules | Getting started, want minimal friction |
+| **`standard`** | 12 rules | Default. Catches common lazy patterns |
+| **`strict`** | 18 rules | Zero tolerance. Catches everything |
 
 ```bash
-# Use a built-in pack
-ai-watchdog check --pack strict --stdin
-
-# Or bring your own rules
-ai-watchdog check --rules ./my-rules/ --stdin
+ai-watchdog check --pack strict --stdin    # strictest
+ai-watchdog check --pack standard --stdin  # default
+ai-watchdog check --pack light --stdin     # gentlest
 ```
 
-## How it works
+### Custom rules
 
-1. **Pattern matching** - Fast regex-based detection of lazy patterns
-2. **Context analysis** - Understands if the user gave a directive vs asked a question
-3. **Instruction compliance** - Loads your CLAUDE.md / .cursorrules and checks if the agent follows them
-4. **Severity levels** - BLOCK (stop the action), WARN (log it), INFO (count it)
+Rules are YAML files with regex patterns:
 
-### Architecture
+```yaml
+# rules/my-rules.yaml
+rules:
+  - name: no-commenting-out
+    severity: BLOCK
+    description: Agent must not comment out code instead of deleting it
+    patterns:
+      - "(?i)\\bcomment(ed|ing)? out\\b.{0,30}(for now|temporarily|in case)"
+```
+
+```bash
+# Use a pack + custom rules (merged)
+ai-watchdog check --pack standard --rules ./rules/ --stdin
+
+# Enforce instruction files (CLAUDE.md, .cursorrules)
+ai-watchdog check --stdin --instructions CLAUDE.md --pack strict
+
+# Initialize a project with example config and rules
+ai-watchdog init
+```
+
+## How It Works
 
 ```
-User prompt ──> AI Agent ──> ai-watchdog ──> Allow / Block
-                                 |
-                            Rules Engine
-                            (YAML rules)
-                                 |
-                         Instruction Files
-                       (CLAUDE.md, .cursorrules)
+stdin (text or JSON) ──> Rules Engine ──> Violations ──> stderr + exit code
+                              |
+                    Pattern matching (regex)
+                    against YAML rule packs
 ```
+
+1. **Input** — reads text from stdin (hook mode) or a file. In hook mode, parses JSON to extract tool input fields.
+2. **Pattern matching** — runs compiled regex patterns from the active rule pack against each line.
+3. **Severity** — each match is tagged BLOCK, WARN, or INFO.
+4. **Output** — violations print to stderr. If any BLOCK violation is found, exits with code 2 (which tells Claude Code hooks to reject the action). WARN/INFO violations log but don't block.
+
+Speed: **sub-100ms per check** including Python startup (regex only, no ML, no network calls). Fast enough for real-time hooks.
+
+## Severity Levels
+
+| Level | Exit code | Behavior |
+|-------|-----------|----------|
+| `BLOCK` | 2 | Rejects the action (hook blocks it) |
+| `WARN` | 0 | Logs to stderr, action proceeds |
+| `INFO` | 0 | Logs to stderr, does not block |
+
+## Statistics
+
+ai-watchdog tracks violation frequency across checks:
+
+```bash
+$ ai-watchdog stats
+
+Total checks:     142
+Total violations: 23
+
+By rule:
+  no-scope-reduction: 8
+  no-option-offering: 5
+  no-test-skipping: 4
+  no-deferral: 3
+  no-premature-confirmation: 3
+
+By severity:
+  BLOCK: 17
+  WARN: 4
+  INFO: 2
+
+$ ai-watchdog stats --format json   # machine-readable
+```
+
+Stats persist to `~/.ai-watchdog/stats.json`.
 
 ## Configuration
 
+Create a `.ai-watchdog.yaml` in your project root (or run `ai-watchdog init`). CLI flags override config values.
+
 ```yaml
-# .ai-watchdog.yaml (project root)
+# .ai-watchdog.yaml
 rules:
-  pack: strict            # Built-in pack: strict, standard, light
-  custom: ./rules/        # Additional custom rules (merged with pack)
+  pack: standard          # strict, standard, light
+  # custom: ./rules/      # path to custom rules directory
 
-instructions:             # Instruction files to enforce
-  - CLAUDE.md
-  - .cursorrules
-  - .claude/commands/*.md
-
-on_violation:
-  BLOCK: reject           # reject = block the action, warn = log only
-  WARN: log
-  INFO: count
+# instructions:           # instruction files to enforce
+#   - CLAUDE.md
+#   - .cursorrules
 
 output:
-  format: text            # text, json, github-annotation
-  file: null              # Log file path (null = stderr)
+  format: text            # text, json, github
 
 stats:
-  enabled: true           # Track violation frequency
-  report_every: 50        # Print stats every N checks
+  enabled: true           # track violation frequency
 ```
 
-## Integrations
+The tool walks up from the current directory to find `.ai-watchdog.yaml`, so it works from any subdirectory.
 
-### Claude Code (hooks)
+## Integration Examples
+
+### Claude Code
 
 ```json
 {
@@ -183,53 +258,21 @@ stats:
 }
 ```
 
-### Cursor (.cursorrules)
-
-Add to your `.cursorrules`:
-```
-IMPORTANT: Do not suggest alternatives, options, or shortcuts.
-Execute exactly what was requested. Do not ask for confirmation
-unless there is a genuine technical blocker.
-```
-
-Then validate:
-```bash
-ai-watchdog audit --instructions .cursorrules --conversation output.log
-```
-
-### CI/CD (GitHub Actions)
+### GitHub Actions
 
 ```yaml
-- name: AI Watchdog Audit
+- name: Check AI output
   run: |
     pip install ai-watchdog
-    ai-watchdog audit \
-      --rules ./rules/ \
-      --instructions CLAUDE.md \
-      --conversation .claude/conversations/*.jsonl \
-      --format github-annotation
+    ai-watchdog check --pack strict --format github response.txt
 ```
 
-## Stats & Reporting
+### Generic hook (any AI tool)
+
+Any tool that can pipe output through a command works:
 
 ```bash
-$ ai-watchdog stats
-
-AI Watchdog Report (last 7 days)
-================================
-Total checks:     1,247
-Violations:       89 (7.1%)
-  BLOCK:          23
-  WARN:           41
-  INFO:           25
-
-Top violations:
-  1. no-scope-reduction    34 hits  "skip X for now"
-  2. no-option-offering    22 hits  "Option A / B / C"
-  3. no-deferral           18 hits  "we can do this later"
-  4. no-permission-seeking 15 hits  "should I proceed?"
-
-Trend: -12% vs last week (rules are working)
+your-ai-tool generate | ai-watchdog check --stdin --pack strict
 ```
 
 ## Why?
@@ -241,10 +284,10 @@ The fix isn't better prompting — it's enforcement. `ai-watchdog` is that enfor
 ## Contributing
 
 PRs welcome. Especially:
-- New rule packs for specific workflows
-- Integration plugins for more AI tools
-- False positive reduction in pattern matching
-- Benchmarks on real conversation logs
+- New detection patterns (with match/no_match examples)
+- Rule packs for specific workflows (ML, frontend, infra)
+- Integration guides for more AI tools
+- False positive reduction
 
 ## License
 

@@ -1,80 +1,126 @@
-# ai-watchdog — Engineering Standards
+# ai-watchdog — Project Instructions
 
 ## What this project is
 
-A CLI tool + Python library that catches AI coding assistants (Claude Code, Cursor, Copilot) being lazy — detecting scope reduction, option offering, deferral, and instruction violations in real-time.
+`ai-watchdog` is a fast Python CLI tool and library for detecting lazy AI-assistant behavior such as:
+- scope reduction
+- option offering
+- deferral
+- test skipping
+- placeholder delivery
+- instruction-compliance violations
 
-**Target users**: Developers who use AI coding assistants and are tired of them suggesting shortcuts instead of executing.
+The product is intentionally lightweight: regex- and heuristic-based, fast enough for hook usage, and easy to customize with YAML rule packs.
 
-## Architecture
+## Current architecture
 
-```
+```text
 src/ai_watchdog/
-  __init__.py          # Public API: Watchdog, Violation, Rule
-  cli.py               # Click CLI: check, watch, audit, stats
-  engine.py            # Core rules engine — loads rules, runs checks
-  rules.py             # Rule model (YAML parsing, pattern compilation)
-  violation.py         # Violation model with severity levels
-  context.py           # Context analyzer — was user's message a directive or question?
-  instructions.py      # Loads and validates CLAUDE.md / .cursorrules compliance
-  reporter.py          # Output formatting (text, JSON, GitHub annotations)
-  stats.py             # Violation tracking and reporting
-  packs/               # Built-in rule packs (YAML files)
-    strict.yaml
-    standard.yaml
+  __init__.py          # Public API exports
+  __main__.py          # python -m ai_watchdog entrypoint
+  cli.py               # Click CLI: check, stats, init
+  config.py            # Loads .ai-watchdog.yaml from cwd/parents
+  engine.py            # Rule loading, text scanning, hook parsing
+  reporter.py          # text/json/github output formatting
+  rules.py             # Rule model, YAML loading, pack loading
+  stats.py             # Best-effort local stats persistence
+  violation.py         # Violation model
+  packs/
     light.yaml
-rules/                 # User-facing example rules
-tests/                 # pytest tests
+    standard.yaml
+    strict.yaml
+
+tests/
+  test_cli.py
+  test_config.py
+  test_engine.py
+  test_new_rules.py
+  test_pack_examples.py
+  test_reporter.py
+  test_rules.py
+  test_stats.py
 ```
 
 ## Stack
 
-- **Python 3.10+** — minimum version for broad compatibility
-- **Click** — CLI framework
-- **Rich** — Terminal output formatting
-- **PyYAML** — Rule file parsing
-- **No ML dependencies** — this must be fast (< 50ms per check). Regex + heuristics only.
+- Python 3.10+
+- Click
+- PyYAML
+- No ML dependencies
+- No network dependency in the runtime path
 
-## Key Design Decisions
+## Public behavior
 
-1. **Speed over accuracy** — False positives are acceptable, false negatives are not. A check must complete in < 50ms to work as a real-time hook.
-2. **Rules are data, not code** — All detection patterns live in YAML files. Users can add/override without touching Python.
-3. **Severity levels matter** — BLOCK = reject the action (exit 1), WARN = log and continue (exit 0), INFO = silent count.
-4. **stdin/stdout protocol** — For hook integration, the tool reads from stdin and writes to stderr (violations) or stdout (pass-through).
-5. **Zero config works** — `ai-watchdog check --stdin` with no rules file uses the `standard` built-in pack.
+### CLI commands
 
-## CLI Commands
-
-```
-ai-watchdog check [--stdin] [--pack NAME] [--rules DIR] [--format text|json]
-ai-watchdog watch --file PATH [--pack NAME] [--rules DIR]
-ai-watchdog audit --conversation PATH [--instructions PATH] [--rules DIR]
-ai-watchdog stats [--days N] [--format text|json]
-ai-watchdog init                  # Create .ai-watchdog.yaml + example rules
+```text
+ai-watchdog check [--stdin] [--pack NAME] [--rules DIR] [--instructions PATH]
+                  [--format text|json|github] [--no-stats] [FILE]
+ai-watchdog stats [--format text|json]
+ai-watchdog init
+python -m ai_watchdog ...
 ```
 
-## Hook Integration Protocol
+### Config
 
-When used as a Claude Code hook (PreToolUse), the tool:
-1. Reads the tool input from stdin (JSON with `tool_name` and `tool_input` fields)
-2. Extracts text content to analyze
-3. Runs rules against it
-4. If BLOCK violation found: prints violation to stderr, exits with code 2 (hook blocks action)
-5. If WARN/INFO only: prints to stderr, exits with code 0 (hook allows action)
-6. If clean: exits with code 0
+The tool supports `.ai-watchdog.yaml`, discovered by walking upward from the current directory.
 
-## Coding Standards
+Supported config keys:
 
-- **Tests for every rule** — each built-in rule must have positive and negative test cases
-- **No dependencies beyond click/rich/pyyaml** — keep install fast
-- **Type hints everywhere** — this is a developer tool, be strict
-- **Docstrings on public API only** — internal code should be self-documenting
-- Functions < 30 lines, files < 200 lines
-- No classes unless there's state to manage
+```yaml
+rules:
+  pack: standard
+  custom: ./rules/
 
-## Release Plan
+instructions:
+  - CLAUDE.md
+  - .cursorrules
 
-1. MVP: `check` command with `strict` pack, stdin/stdout, Claude Code hook example
-2. v0.2: `audit` command, instruction file compliance, stats tracking
-3. v0.3: `watch` command (live file tailing), GitHub Actions integration
-4. v1.0: Stable API, comprehensive rule packs, community rules repo
+output:
+  format: text
+
+stats:
+  enabled: true
+```
+
+CLI flags override config values.
+
+### Exit behavior
+
+- `BLOCK` violation present: exit code `2`
+- only `WARN` / `INFO`: exit code `0`
+- clean result: exit code `0`
+
+Hook-friendly behavior matters more than fancy output.
+
+## Design principles
+
+1. Speed over sophistication. This tool should stay simple and fast.
+2. Rules are data. Detection logic should live in YAML packs where possible.
+3. False positives are acceptable in stricter packs, but docs and examples must be honest.
+4. Public docs must match the implementation exactly.
+5. Tests are part of the product surface. Rule examples, CLI behavior, config loading, and reporter output should all be covered.
+
+## Coding guidance
+
+- Prefer extending packs and tests together.
+- If a rule changes, update:
+  - the YAML pack
+  - direct rule tests
+  - YAML example validation where relevant
+- Keep CLI behavior predictable and minimal.
+- Stats must remain best-effort and never block core rule results.
+- Avoid introducing optional complexity unless it clearly improves usability.
+
+## Release guidance
+
+This project is currently best described as alpha-quality tooling. Be careful not to overstate maturity in docs or release messaging unless:
+- tests pass from a clean environment
+- README examples are verified
+- packaged artifacts include the required rule data files
+
+## When working in this repo
+
+- Read the current implementation before assuming a feature exists.
+- Do not reintroduce stale concepts like `watch`, `audit`, `context.py`, `instructions.py`, `Watchdog`, or `Rich` unless they are actually implemented.
+- Keep README, CLI help, and `CLAUDE.md` aligned.
