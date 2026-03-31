@@ -1,0 +1,59 @@
+# Standard rule pack — catches common lazy patterns without being too aggressive
+# Default pack when no --pack is specified
+
+rules:
+  - name: no-scope-reduction
+    severity: BLOCK
+    description: Agent must not suggest skipping or reducing requested scope
+    patterns:
+      - "(?i)\\b(skip|skipping)\\b.{0,40}\\b(for now|for the moment|initially)"
+      - "(?i)\\bwe (could|can) (just|simply|instead)\\b"
+      - "(?i)\\bstart with (just|only)\\b"
+      - "(?i)\\binstead of .{5,50}, (we|let's|I'll)\\b"
+
+  - name: no-option-offering
+    severity: BLOCK
+    description: Agent must not present A/B/C options when user gave a directive
+    patterns:
+      - "(?i)\\bOption [A-Z]\\b[:\\-—]"
+      - "(?i)\\bhere are .{0,15}(options|approaches|alternatives)\\b"
+      - "(?i)\\bwhich .{0,20}(prefer|want|approach|option)\\b.*\\?"
+
+  - name: no-deferral
+    severity: WARN
+    description: Agent should not suggest doing work later
+    patterns:
+      - "(?i)\\b(later|afterwards|in a follow-up|next session)\\b.{0,30}\\b(we can|I'll|let's)\\b"
+      - "(?i)\\bleave .{0,30} for (later|now|another|a future)\\b"
+
+  - name: no-premature-confirmation
+    severity: WARN
+    description: Agent should not ask permission for what was already requested
+    patterns:
+      - "(?i)\\b(want me to|shall I|should I)\\b.{0,40}(proceed|continue|go ahead|start)\\b"
+
+  - name: no-partial-execution
+    severity: WARN
+    description: Agent should not do only part of what was asked
+    patterns:
+      - "(?i)\\bI'?ll (just|only) (do|handle|fix|address) .{0,30}(for now|first)"
+      - "(?i)\\b(minimal|bare[- ]?minimum|MVP)\\b.{0,20}(version|implementation)"
+
+  - name: no-hedging
+    severity: INFO
+    description: Detect hedging language
+    patterns:
+      - "(?i)\\b(I think|probably|perhaps|maybe)\\b.{0,40}(we should|we could|I'd suggest)"
+
+  - name: no-unsolicited-alternatives
+    severity: INFO
+    description: Agent suggesting alternatives when user already chose
+    patterns:
+      - "(?i)\\b(alternatively|another (way|approach|option))\\b"
+      - "(?i)\\b(a (simpler|cleaner|better|easier) (way|approach))\\b"
+
+  - name: instruction-compliance
+    severity: BLOCK
+    description: Agent must follow instruction files
+    instruction_check: true
+    patterns: []

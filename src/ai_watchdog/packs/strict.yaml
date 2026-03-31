@@ -1,0 +1,180 @@
+# Strict rule pack — catches all lazy AI patterns
+# Use: ai-watchdog check --pack strict --stdin
+
+rules:
+  - name: no-scope-reduction
+    severity: BLOCK
+    description: Agent must not suggest skipping, deferring, or reducing requested scope
+    patterns:
+      - "(?i)\\b(skip|skipping)\\b.{0,40}\\b(for now|for the moment|initially|first)"
+      - "(?i)\\bwe (could|can|might) (just|simply|instead)\\b"
+      - "(?i)\\bdefer\\b.{0,20}\\b(to|until|for)\\b"
+      - "(?i)\\bstart with (just|only)\\b"
+      - "(?i)\\binstead of .{5,50}, (we|let's|I'll)\\b"
+      - "(?i)\\b(simplest|easiest|quickest) (approach|path|way|option)\\b"
+      - "(?i)\\bfor now.{0,10}(skip|omit|leave|ignore)\\b"
+    examples:
+      match:
+        - "We could skip GatorTron for now and just run the CPU stages"
+        - "Let's start with just the entity extraction"
+        - "Instead of building the full pipeline, we could..."
+        - "The simplest approach would be to only run stage 1"
+      no_match:
+        - "Stage 1 skips chunks that are already annotated"
+        - "The skip logic in the loop prevents duplicate processing"
+
+  - name: no-option-offering
+    severity: BLOCK
+    description: Agent must not present A/B/C options when user gave a clear directive
+    patterns:
+      - "(?i)\\bOption [A-Z]\\b[:\\-—]"
+      - "(?i)\\b(want me to|should I|shall (we|I)|do you (want|prefer))\\b.*\\?"
+      - "(?i)\\bhere are .{0,15}(options|approaches|alternatives)\\b"
+      - "(?i)\\bwe (have|can consider) (several|a few|two|three|multiple) (options|approaches|paths)\\b"
+      - "(?i)\\bwhich .{0,20}(prefer|want|approach|option)\\b.*\\?"
+    examples:
+      match:
+        - "Option A: Run partial pipeline\nOption B: Build everything"
+        - "Want me to proceed with the full setup or just the Docker part?"
+        - "Here are three approaches we could take"
+        - "Should I start with the infrastructure changes?"
+      no_match:
+        - "The pipeline supports option flags via --stages"
+        - "Configuration options are documented in config.yaml"
+
+  - name: no-deferral
+    severity: BLOCK
+    description: Agent must not suggest doing work later when user asked for it now
+    patterns:
+      - "(?i)\\b(later|afterwards|in a follow-up|next session|separate PR)\\b.{0,30}\\b(we can|I'll|let's|could)\\b"
+      - "(?i)\\b(can|could) (be|do) .{0,20}(later|afterwards|separately|in a follow-up)\\b"
+      - "(?i)\\bleave .{0,30} for (later|now|another|a future)\\b"
+      - "(?i)\\bparked? .{0,15}(for now|for later|this)\\b"
+      - "(?i)\\bbacklog\\b.{0,20}\\b(add|put|move|track)\\b"
+    examples:
+      match:
+        - "We can add the UMLS index build later in a follow-up"
+        - "This could be done separately in a next session"
+        - "I'll leave the CDK changes for a future PR"
+        - "Let's park this for now and focus on..."
+      no_match:
+        - "The cron job runs later at midnight UTC"
+        - "Backlogged items are tracked in ISSUES-TRACKER.md"
+
+  - name: no-premature-confirmation
+    severity: WARN
+    description: Agent should not ask for permission to do what was already requested
+    patterns:
+      - "(?i)\\b(want me to|shall I|should I|ready to|can I)\\b.{0,40}(proceed|continue|go ahead|start|begin|do this)\\b"
+      - "(?i)\\bLet me know (if|when|whether)\\b.{0,30}\\b(proceed|continue|ready)\\b"
+      - "(?i)\\bAwaiting .{0,20}(approval|confirmation|go-ahead)\\b"
+    examples:
+      match:
+        - "Want me to proceed with the implementation?"
+        - "Should I go ahead and build this?"
+        - "Let me know when you're ready to proceed"
+      no_match:
+        - "I'll proceed with the fix"
+        - "The system awaits confirmation from the user via the UI"
+
+  - name: no-excessive-planning
+    severity: WARN
+    description: Agent should not plan excessively when action was requested
+    patterns:
+      - "(?i)\\b(first|before).{0,30}(let me|I'll|we should).{0,20}(plan|outline|map out|think through)\\b"
+      - "(?i)\\bhere'?s (the|my|a|an) (plan|approach|strategy|roadmap)\\b"
+      - "(?i)\\bstep 1:.{0,50}step 2:.{0,50}step 3:\\b"
+    examples:
+      match:
+        - "Before we start, let me plan the approach"
+        - "Here's my strategy for implementing this"
+      no_match:
+        - "The deployment plan is documented in S2-rag-pipeline-rebuild.md"
+
+  - name: no-scope-creep-warnings
+    severity: WARN
+    description: Agent should not warn about scope being too large when user chose the scope
+    patterns:
+      - "(?i)\\b(this (is|seems|looks) (quite|pretty|very|fairly) (large|big|ambitious|complex))\\b"
+      - "(?i)\\b(might (be|take) (a lot|too|quite)|(are you sure|that's a lot))\\b"
+      - "(?i)\\b(break .{0,20}(into|down).{0,20}(smaller|phases|parts|pieces))\\b"
+    examples:
+      match:
+        - "This is quite a large change — might want to break it into smaller PRs"
+        - "Are you sure you want to do all of this at once?"
+      no_match:
+        - "This is a large model (8.9B params) that needs 17.8GB VRAM"
+
+  - name: no-hedging
+    severity: INFO
+    description: Detect hedging language that indicates the agent is unsure but should just do it
+    patterns:
+      - "(?i)\\b(I think|I believe|probably|perhaps|maybe|arguably|it seems like)\\b.{0,40}(we should|we could|I'd suggest)"
+      - "(?i)\\b(not sure if|uncertain whether|hard to say)\\b"
+    examples:
+      match:
+        - "I think we should probably use the Azure provider"
+        - "Maybe we could try the alternative approach"
+      no_match:
+        - "I think this is caused by a race condition in the DB write"
+
+  - name: no-false-blockers
+    severity: BLOCK
+    description: Agent must not invent blockers that don't exist to avoid doing work
+    patterns:
+      - "(?i)\\b(we (can't|cannot|won't be able to).{0,40}(until|without|unless).{0,40}(first|before))\\b"
+      - "(?i)\\b(blocked by|depends on|prerequisite|need to .{0,20} before we can)\\b"
+    examples:
+      match:
+        - "We can't build the Docker image until we first set up the ECR repo"
+        - "This is blocked by the CDK changes that need to deploy first"
+      no_match:
+        - "The CUDA driver depends on the AMI version"
+
+  - name: instruction-compliance
+    severity: BLOCK
+    description: Agent must follow instruction files (CLAUDE.md, .cursorrules)
+    instruction_check: true
+    patterns: []
+
+  - name: no-partial-execution
+    severity: BLOCK
+    description: Agent must not do only part of what was asked
+    patterns:
+      - "(?i)\\b(for (the|this) (first|initial) (pass|phase|iteration))\\b.{0,30}(just|only|limit)"
+      - "(?i)\\bI'?ll (just|only) (do|handle|fix|address) .{0,30}(for now|first|to start)"
+      - "(?i)\\b(minimal|bare[- ]?minimum|MVP|quick[- ]?win)\\b.{0,20}(version|implementation|fix)"
+    examples:
+      match:
+        - "For this first pass, I'll just handle the Python changes"
+        - "I'll only address the critical issues for now"
+        - "Let's do a minimal version first"
+      no_match:
+        - "The minimal reproducible example shows the bug"
+
+  - name: no-unsolicited-alternatives
+    severity: WARN
+    description: Agent should not suggest alternative approaches when user already chose one
+    patterns:
+      - "(?i)\\b(alternatively|another (way|approach|option)|a different approach)\\b"
+      - "(?i)\\b(you could also|we could also|another thing to consider)\\b"
+      - "(?i)\\b(a (simpler|cleaner|better|easier) (way|approach) (would be|might be|is))\\b"
+    examples:
+      match:
+        - "Alternatively, we could use a Lambda instead of ECS"
+        - "A simpler approach would be to use S3 events"
+      no_match:
+        - "The alternative implementation uses async generators"
+
+  - name: no-cost-scaring
+    severity: WARN
+    description: Agent should not use cost as a reason to reduce scope (user knows their budget)
+    patterns:
+      - "(?i)\\b(cost|expensive|pricey|budget)\\b.{0,30}\\b(careful|watch out|consider|be aware|might want)\\b"
+      - "(?i)\\b(save money|reduce cost|cheaper|more affordable)\\b.{0,20}(if we|by|using)"
+    examples:
+      match:
+        - "This might get expensive — be careful with the instance count"
+        - "We could save money by using spot instances instead"
+      no_match:
+        - "Cost: 8x g5.xlarge on-demand = $8.05/hr"

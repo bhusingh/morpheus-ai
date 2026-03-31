@@ -1,0 +1,28 @@
+# Light rule pack — only catches the most blatant shortcuts
+# Good for teams new to ai-watchdog
+
+rules:
+  - name: no-scope-reduction
+    severity: BLOCK
+    description: Agent must not suggest skipping requested work
+    patterns:
+      - "(?i)\\b(skip|skipping)\\b.{0,40}\\b(for now|for the moment)"
+      - "(?i)\\bwe (could|can) just\\b"
+
+  - name: no-option-offering
+    severity: WARN
+    description: Agent presenting A/B/C options
+    patterns:
+      - "(?i)\\bOption [A-Z]\\b[:\\-—]"
+
+  - name: no-deferral
+    severity: WARN
+    description: Agent deferring work
+    patterns:
+      - "(?i)\\bleave .{0,30} for (later|now|another|a future)\\b"
+
+  - name: no-partial-execution
+    severity: INFO
+    description: Agent doing only part of what was asked
+    patterns:
+      - "(?i)\\b(minimal|bare[- ]?minimum|MVP)\\b.{0,20}(version|implementation)"
