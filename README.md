@@ -222,6 +222,28 @@ $ morpheus-ai stats --format json   # machine-readable
 
 Stats persist to `~/.morpheus-ai/stats.json`.
 
+## Audit Log
+
+Every check is logged locally so you can audit exactly what morpheus-ai did:
+
+```bash
+$ morpheus-ai audit
+
+[2026-03-31T12:00:01] BLOCKED pack=strict   source=stdin input=142B violations=3
+  rules: no-scope-reduction, no-test-skipping
+[2026-03-31T12:00:05] PASS    pack=strict   source=stdin input=89B  violations=0
+[2026-03-31T12:00:09] BLOCKED pack=strict   source=stdin input=201B violations=1
+  rules: no-user-delegation
+
+$ morpheus-ai audit --tail 5          # last 5 entries
+$ morpheus-ai audit --format json     # machine-readable
+$ morpheus-ai audit --clear           # delete the log
+```
+
+Each entry records: timestamp, source (stdin/file), pack used, input size in bytes, rule count, violations found, and which rules matched. **No input content is ever logged.**
+
+Audit log persists to `~/.morpheus-ai/audit.log` (JSONL format, capped at 5 MB).
+
 ## Configuration
 
 Create a `.morpheus-ai.yaml` in your project root (or run `morpheus-ai init`). CLI flags override config values.
@@ -241,6 +263,9 @@ output:
 
 stats:
   enabled: true           # track violation frequency
+
+audit:
+  enabled: true           # local audit log (~/.morpheus-ai/audit.log)
 ```
 
 The tool walks up from the current directory to find `.morpheus-ai.yaml`, so it works from any subdirectory.
@@ -292,12 +317,12 @@ your-ai-tool generate | morpheus-ai check --stdin --pack strict
 **What it does NOT do:**
 - **No network calls.** Zero. Not on install, not at runtime, not ever. Verify: `grep -r "http\|socket\|request\|urllib" src/`
 - **No data collection.** No telemetry, no analytics, no phoning home.
-- **No file system writes** other than the optional local stats file.
+- **No file system writes** other than the optional local stats and audit log files.
 - **No code execution.** It does not eval, exec, or run anything from the input it scans.
 - **No secrets access.** It reads text from stdin, runs regex, and exits. It does not parse, store, or transmit any content.
 
 **How to verify:**
-- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 8 Python files, ~400 lines total
+- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 10 Python files, ~800 lines total
 - The entire detection engine is regex against YAML rule packs — read them in [`src/morpheus_ai/packs/`](https://github.com/bhusingh/morpheus-ai/tree/main/src/morpheus_ai/packs)
 - CI runs on every push: tests, lint, build verification
 

@@ -3,14 +3,16 @@
 import pytest
 from click.testing import CliRunner
 
+import morpheus_ai.audit as audit_module
 import morpheus_ai.stats as stats_module
 from morpheus_ai.cli import main
 
 
 @pytest.fixture(autouse=True)
-def _isolate_stats(tmp_path, monkeypatch):
-    """Redirect stats to a temp directory so tests never touch ~/.morpheus-ai/."""
+def _isolate_local_data(tmp_path, monkeypatch):
+    """Redirect stats and audit to temp so tests never touch ~/.morpheus-ai/."""
     monkeypatch.setattr(stats_module, "DEFAULT_STATS_PATH", tmp_path / "stats.json")
+    monkeypatch.setattr(audit_module, "DEFAULT_AUDIT_PATH", tmp_path / "audit.log")
 
 
 class TestCheckCommand:
@@ -118,6 +120,55 @@ class TestConfigIntegration:
             input="def hello(): pass\n",
         )
         assert result.exit_code == 0
+
+
+class TestAuditCommand:
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    def test_audit_empty(self):
+        result = self.runner.invoke(main, ["audit"])
+        assert result.exit_code == 0
+        assert "No audit entries" in result.output
+
+    def test_audit_after_check(self):
+        self.runner.invoke(
+            main, ["check", "--stdin", "--pack", "strict"],
+            input="We could just skip it.",
+        )
+        result = self.runner.invoke(main, ["audit", "--tail", "1"])
+        assert result.exit_code == 0
+        assert "BLOCKED" in result.output
+        assert "no-scope-reduction" in result.output
+
+    def test_audit_json_format(self):
+        self.runner.invoke(
+            main, ["check", "--stdin"],
+            input="All good.",
+        )
+        result = self.runner.invoke(main, ["audit", "--format", "json"])
+        assert result.exit_code == 0
+        assert '"source": "stdin"' in result.output
+
+    def test_audit_clear(self):
+        self.runner.invoke(
+            main, ["check", "--stdin"],
+            input="hello",
+        )
+        result = self.runner.invoke(main, ["audit", "--clear"])
+        assert result.exit_code == 0
+        assert "cleared" in result.output
+        result = self.runner.invoke(main, ["audit"])
+        assert "No audit entries" in result.output
+
+    def test_no_audit_flag(self, tmp_path, monkeypatch):
+        audit_path = tmp_path / "audit.log"
+        monkeypatch.setattr(audit_module, "DEFAULT_AUDIT_PATH", audit_path)
+        self.runner.invoke(
+            main, ["check", "--stdin", "--no-audit"],
+            input="hello",
+        )
+        assert not audit_path.exists()
 
 
 class TestInitCommand:

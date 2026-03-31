@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 — 2026-03-31
+
+### Added
+
+- **Audit log**: local, append-only record of every check at `~/.morpheus-ai/audit.log`
+- New CLI command: `morpheus-ai audit [--tail N] [--format text|json] [--clear]`
+- New config key: `audit.enabled` (default: true)
+- New CLI flag: `--no-audit` on the check command
+- No input content is ever logged — only metadata (timestamp, pack, input size, violations, matched rules)
+- Audit log capped at 5 MB with automatic trimming
+- Security & Trust section in README with explicit no-network, no-telemetry guarantees
+- CI/PyPI/Python/License badges in README
+- "This is not a linter" positioning section in README
+
 ## 0.1.0 — 2026-03-31
 
 Initial public release.

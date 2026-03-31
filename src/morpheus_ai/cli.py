@@ -7,6 +7,8 @@ from pathlib import Path
 
 import click
 
+from morpheus_ai.audit import clear as audit_clear
+from morpheus_ai.audit import read_entries, write_entry
 from morpheus_ai.config import load_config
 from morpheus_ai.engine import check_hook_input, check_text, load_rules, max_severity
 from morpheus_ai.reporter import report
@@ -29,6 +31,7 @@ def main() -> None:
 @click.option("--format", "fmt", default=None,
               type=click.Choice(["text", "json", "github"]), help="Output format.")
 @click.option("--no-stats", is_flag=True, help="Disable stats recording.")
+@click.option("--no-audit", is_flag=True, help="Disable audit logging.")
 @click.argument("file", required=False, type=click.Path(exists=True))
 def check(
     use_stdin: bool,
@@ -37,6 +40,7 @@ def check(
     instructions_path: str | None,
     fmt: str | None,
     no_stats: bool,
+    no_audit: bool,
     file: str | None,
 ) -> None:
     """Check text for lazy AI patterns."""
@@ -46,6 +50,7 @@ def check(
     rules_dir = rules_dir or cfg.custom_rules
     fmt = fmt or cfg.fmt
     stats_enabled = cfg.stats_enabled and not no_stats
+    audit_enabled = cfg.audit_enabled and not no_audit
 
     text = _read_input(use_stdin, file)
     rules = load_rules(pack=pack, rules_dir=rules_dir)
@@ -65,6 +70,16 @@ def check(
             s.save()
         except Exception:
             pass
+
+    if audit_enabled:
+        source = "stdin" if use_stdin else (file or "unknown")
+        write_entry(
+            violations,
+            source=source,
+            pack=pack,
+            input_bytes=len(text.encode()),
+            rules_count=len(rules),
+        )
 
     if max_severity(violations) == Severity.BLOCK:
         raise SystemExit(2)
@@ -128,6 +143,40 @@ def stats(fmt: str) -> None:
 
 
 @main.command()
+@click.option("--tail", default=20, help="Show last N entries.")
+@click.option("--format", "fmt", default="text", type=click.Choice(["text", "json"]))
+@click.option("--clear", is_flag=True, help="Delete the audit log.")
+def audit(tail: int, fmt: str, clear: bool) -> None:
+    """View or clear the local audit log."""
+    if clear:
+        audit_clear()
+        click.echo("Audit log cleared.")
+        return
+    entries = read_entries(tail=tail)
+    if not entries:
+        click.echo("No audit entries yet.")
+        return
+    if fmt == "json":
+        import json
+
+        click.echo(json.dumps(entries, indent=2))
+    else:
+        for e in entries:
+            status = "BLOCKED" if e.get("blocked") else "PASS"
+            ts = e.get("ts", "?")[:19]
+            rules_matched = ", ".join(e.get("matched_rules", []))
+            click.echo(
+                f"[{ts}] {status:7s} "
+                f"pack={e.get('pack', '?'):8s} "
+                f"source={e.get('source', '?'):5s} "
+                f"input={e.get('input_bytes', 0)}B "
+                f"violations={e.get('violations', 0)}"
+            )
+            if rules_matched:
+                click.echo(f"  rules: {rules_matched}")
+
+
+@main.command()
 def init() -> None:
     """Create .morpheus-ai.yaml and example rules in the current directory."""
     config_path = Path(".morpheus-ai.yaml")
@@ -160,6 +209,9 @@ def _do_init(config_path: Path, rules_path: Path) -> None:
             "\n"
             "stats:\n"
             "  enabled: true         # track violation frequency\n"
+            "\n"
+            "audit:\n"
+            "  enabled: true         # local audit log (~/.morpheus-ai/audit.log)\n"
         )
         click.echo(f"Created {config_path}")
 

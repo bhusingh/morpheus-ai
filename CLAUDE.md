@@ -23,6 +23,7 @@ src/morpheus_ai/
   engine.py            # Rule loading, text scanning, hook parsing
   reporter.py          # text/json/github output formatting
   rules.py             # Rule model, YAML loading, pack loading
+  audit.py             # Local audit log (JSONL)
   stats.py             # Best-effort local stats persistence
   violation.py         # Violation model
   packs/
@@ -31,6 +32,7 @@ src/morpheus_ai/
     strict.yaml
 
 tests/
+  test_audit.py
   test_cli.py
   test_config.py
   test_engine.py
@@ -55,8 +57,9 @@ tests/
 
 ```text
 morpheus-ai check [--stdin] [--pack NAME] [--rules DIR] [--instructions PATH]
-                  [--format text|json|github] [--no-stats] [FILE]
+                  [--format text|json|github] [--no-stats] [--no-audit] [FILE]
 morpheus-ai stats [--format text|json]
+morpheus-ai audit [--tail N] [--format text|json] [--clear]
 morpheus-ai init
 python -m morpheus_ai ...
 ```
@@ -80,6 +83,9 @@ output:
   format: text
 
 stats:
+  enabled: true
+
+audit:
   enabled: true
 ```
 
@@ -122,5 +128,5 @@ This project is currently best described as alpha-quality tooling. Be careful no
 ## When working in this repo
 
 - Read the current implementation before assuming a feature exists.
-- Do not reintroduce stale concepts like `watch`, `audit`, `context.py`, `instructions.py`, `Watchdog`, or `Rich` unless they are actually implemented.
+- Do not reintroduce stale concepts like `watch`, `context.py`, `instructions.py`, `Watchdog`, or `Rich` unless they are actually implemented.
 - Keep README, CLI help, and `CLAUDE.md` aligned.

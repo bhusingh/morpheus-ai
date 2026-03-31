@@ -18,12 +18,14 @@ class Config:
     instructions: list[str] | None = None
     fmt: str = "text"
     stats_enabled: bool = True
+    audit_enabled: bool = True
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Config:
         rules = data.get("rules", {})
         output = data.get("output", {})
         stats = data.get("stats", {})
+        audit = data.get("audit", {})
         instructions = data.get("instructions")
         if isinstance(instructions, str):
             instructions = [instructions]
@@ -33,6 +35,7 @@ class Config:
             instructions=instructions,
             fmt=output.get("format", "text"),
             stats_enabled=stats.get("enabled", True),
+            audit_enabled=audit.get("enabled", True),
         )
 
 
