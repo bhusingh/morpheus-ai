@@ -51,6 +51,14 @@ Tests can be added later in a follow-up PR."
 
 ## Install
 
+**Recommended** — install as a global CLI tool with [pipx](https://pipx.pypa.io/):
+
+```bash
+pipx install morpheus-ai
+```
+
+Or with pip:
+
 ```bash
 pip install morpheus-ai
 ```
@@ -58,10 +66,12 @@ pip install morpheus-ai
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv pip install morpheus-ai
+uv tool install morpheus-ai
 ```
 
-**Requirements:** Python 3.10+ | **Dependencies:** click, pyyaml (no ML, no GPU, no network calls)
+> **Note:** morpheus-ai requires Python 3.10+. If `pip install` fails with "no matching distribution," your default `python3` may be too old (common on macOS with Xcode Python 3.9). Use `pipx` or `uv` which handle this automatically, or install with Homebrew Python directly: `/opt/homebrew/bin/python3 -m pip install morpheus-ai`.
+
+**Dependencies:** click, pyyaml (no ML, no GPU, no network calls)
 
 ## Quick Start
 
