@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "morpheus-ai"
-version = "0.2.1"
+version = "0.3.0"
 description = "Stop your AI coding assistant from being lazy. Catches scope reduction, option offering, deferral, and instruction violations in real-time."
 readme = "README.md"
 license = "MIT"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["ai", "claude", "copilot", "cursor", "morpheus", "linting", "coding-assistant"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",

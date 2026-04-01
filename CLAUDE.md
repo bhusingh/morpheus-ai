@@ -62,6 +62,9 @@ morpheus-ai stats [--format text|json]
 morpheus-ai audit [--tail N] [--format text|json] [--clear]
 morpheus-ai init
 python -m morpheus_ai ...
+
+Supported hook events: PreToolUse, PostToolUse, Stop, SubagentStop.
+Rules are context-filtered per hook type (code rules for Write/Edit, conversation rules for Stop).
 ```
 
 ### Config

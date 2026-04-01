@@ -9,16 +9,18 @@ import click
 
 from morpheus_ai.audit import clear as audit_clear
 from morpheus_ai.audit import read_entries, write_entry
-from morpheus_ai.config import load_config
+from morpheus_ai.config import discover_instruction_files, load_config
 from morpheus_ai.engine import (
+    check_hook_input,
     check_text,
-    extract_hook_text,
     load_rules,
     max_severity,
+    parse_hook_payload,
 )
 from morpheus_ai.reporter import report
 from morpheus_ai.rules import Severity
 from morpheus_ai.stats import Stats
+from morpheus_ai.violation import Violation
 
 
 @click.group()
@@ -37,6 +39,8 @@ def main() -> None:
               type=click.Choice(["text", "json", "github"]), help="Output format.")
 @click.option("--no-stats", is_flag=True, help="Disable stats recording.")
 @click.option("--no-audit", is_flag=True, help="Disable audit logging.")
+@click.option("--suggest-fix", is_flag=True,
+              help="Output fix suggestions on stdout (hook response mode).")
 @click.argument("file", required=False, type=click.Path(exists=True))
 def check(
     use_stdin: bool,
@@ -46,6 +50,7 @@ def check(
     fmt: str | None,
     no_stats: bool,
     no_audit: bool,
+    suggest_fix: bool,
     file: str | None,
 ) -> None:
     """Check text for lazy AI patterns."""
@@ -62,11 +67,16 @@ def check(
     instructions = _load_instructions(instructions_path, cfg)
 
     if use_stdin:
-        violations = check_text(
-            extract_hook_text(text), rules, instructions=instructions,
-        )
+        payload = parse_hook_payload(text)
+        violations = check_hook_input(text, rules, instructions=instructions)
+        hook_event = payload.hook_event or "stdin"
+        tool_name = payload.tool_name
+        is_speculation = payload.is_speculation
     else:
         violations = check_text(text, rules, instructions=instructions)
+        hook_event = "file"
+        tool_name = ""
+        is_speculation = False
 
     report(violations, fmt=fmt)
 
@@ -79,16 +89,20 @@ def check(
             pass
 
     if audit_enabled:
-        source = "stdin" if use_stdin else (file or "unknown")
+        source = hook_event if use_stdin else (file or "unknown")
         write_entry(
             violations,
             source=source,
             pack=pack,
             input_bytes=len(text.encode()),
             rules_count=len(rules),
+            tool_name=tool_name,
+            speculation=is_speculation,
         )
 
     if max_severity(violations) == Severity.BLOCK:
+        if suggest_fix:
+            _output_fix_suggestion(violations)
         raise SystemExit(2)
 
 
@@ -115,6 +129,9 @@ def _load_instructions(
         paths = [cli_path]
     elif hasattr(cfg, "instructions") and cfg.instructions:
         paths = cfg.instructions
+    elif hasattr(cfg, "auto_instructions") and cfg.auto_instructions:
+        start = cfg.config_dir if hasattr(cfg, "config_dir") else None
+        paths = discover_instruction_files(start)
     if not paths:
         return None
     contents: list[str] = []
@@ -123,6 +140,23 @@ def _load_instructions(
         if path.is_file():
             contents.append(path.read_text())
     return contents or None
+
+
+def _output_fix_suggestion(violations: list[Violation]) -> None:
+    """Output fix guidance on stdout for the AI to retry."""
+    import json as json_mod
+
+    blockers = [v for v in violations if v.is_blocking]
+    descriptions = [
+        f"- {v.rule.name}: {v.rule.description} "
+        f"(matched: \"{v.matched_text}\")"
+        for v in blockers
+    ]
+    guidance = (
+        "morpheus-ai blocked this action. Fix these issues and retry:\n"
+        + "\n".join(descriptions)
+    )
+    print(json_mod.dumps({"decision": "block", "reason": guidance}))
 
 
 @main.command()
@@ -172,10 +206,12 @@ def audit(tail: int, fmt: str, clear: bool) -> None:
             status = "BLOCKED" if e.get("blocked") else "PASS"
             ts = e.get("ts", "?")[:19]
             rules_matched = ", ".join(e.get("matched_rules", []))
+            tool = e.get("tool", "")
+            tool_str = f" tool={tool}" if tool else ""
             click.echo(
                 f"[{ts}] {status:7s} "
                 f"pack={e.get('pack', '?'):8s} "
-                f"source={e.get('source', '?'):5s} "
+                f"source={e.get('source', '?'):5s}{tool_str} "
                 f"input={e.get('input_bytes', 0)}B "
                 f"violations={e.get('violations', 0)}"
             )

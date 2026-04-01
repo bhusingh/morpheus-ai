@@ -81,6 +81,13 @@ rules:
     patterns:
       - "(?i)\\b(?:error handling|edge cases?)\\b[^\\n]{0,30}(?:can be added later|skip for now|handle later)"
 
+  - name: no-false-completion
+    severity: INFO
+    description: Agent claiming completion without evidence
+    patterns:
+      - "(?i)\\b(?:I'?ve|I have) (?:implemented|completed|finished|done|made|applied) (?:all|every|each|the) [^\\n]{0,30}(?:changes?|updates?|fixes?|modifications?)\\b"
+      - "(?i)\\beverything (?:is|should be|looks) (?:working|ready|good|done|set|in place)\\b"
+
   - name: instruction-compliance
     severity: BLOCK
     description: Agent must follow instruction files

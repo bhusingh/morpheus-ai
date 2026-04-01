@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from morpheus_ai.rules import Rule, Severity, load_pack, load_rules_from_yaml
@@ -13,6 +14,39 @@ _MAX_MATCHED_TEXT = 200
 _MAX_RECURSION_DEPTH = 50
 
 _DIRECTIVE_RE = re.compile(r"(?i)\b(must|always|never|do not|don't|required)\b")
+
+# Rules that only apply to code written via Write/Edit tools
+_CODE_ONLY_RULES = frozenset({
+    "no-placeholder-code",
+    "no-user-delegation",
+})
+
+# Rules that only apply to conversational text (Stop/SubagentStop)
+_CONVERSATION_ONLY_RULES = frozenset({
+    "no-option-offering",
+    "no-premature-confirmation",
+    "no-excessive-planning",
+    "no-scope-creep-warnings",
+    "no-hedging",
+    "no-false-blockers",
+    "no-cost-scaring",
+    "no-false-completion",
+})
+
+
+_TICK_RE = re.compile(r"^\s*<tick>\s*$")
+
+
+@dataclass(frozen=True)
+class HookPayload:
+    """Parsed hook payload with structured metadata."""
+
+    text: str
+    hook_event: str = ""
+    tool_name: str = ""
+    tool_output: str = ""
+    is_proactive_tick: bool = False
+    is_speculation: bool = False
 
 
 def load_rules(
@@ -151,30 +185,82 @@ def _check_directive_compliance(
     return None
 
 
-def extract_hook_text(raw_input: str) -> str:
-    """Extract scannable text from hook JSON (or return raw if not JSON).
+def parse_hook_payload(raw_input: str) -> HookPayload:
+    """Parse hook JSON into structured payload.
 
-    Handles two Claude Code hook formats:
+    Handles all Claude Code hook formats:
     - PreToolUse: {"tool_name": "...", "tool_input": {...}}
-    - Stop: {"last_assistant_message": "..."}
+    - PostToolUse: {"tool_name": "...", "tool_output": "..."}
+    - Stop/SubagentStop: {"last_assistant_message": "..."}
+    - Plain text fallback
     """
     try:
         data = json.loads(raw_input)
     except (json.JSONDecodeError, TypeError):
-        return raw_input
+        return HookPayload(text=raw_input)
 
     if not isinstance(data, dict):
-        return raw_input
+        return HookPayload(text=raw_input)
 
-    # Stop hook: scan Claude's conversational response
+    hook_event = data.get("hook_event_name", "")
+    tool_name = data.get("tool_name", "")
+
+    # Stop / SubagentStop: scan Claude's conversational response
     assistant_msg = data.get("last_assistant_message")
     if assistant_msg and isinstance(assistant_msg, str):
-        return assistant_msg
+        is_tick = bool(_TICK_RE.match(assistant_msg))
+        return HookPayload(
+            text=assistant_msg,
+            hook_event=hook_event or "Stop",
+            tool_name=tool_name,
+            is_proactive_tick=is_tick,
+        )
 
-    # PreToolUse hook: scan tool input fields
+    # PostToolUse: scan tool output
+    tool_output = data.get("tool_output", "")
+    if isinstance(tool_output, dict):
+        tool_output = "\n".join(_extract_strings(tool_output))
+
+    # Detect speculative execution
+    is_speculation = bool(data.get("is_speculation"))
+
+    # PreToolUse / PostToolUse: scan tool input fields
     tool_input = data.get("tool_input", data)
     text_parts = _extract_strings(tool_input)
-    return "\n".join(text_parts)
+    text = "\n".join(text_parts)
+
+    return HookPayload(
+        text=text,
+        hook_event=hook_event,
+        tool_name=tool_name,
+        tool_output=str(tool_output) if tool_output else "",
+        is_speculation=is_speculation,
+    )
+
+
+def extract_hook_text(raw_input: str) -> str:
+    """Extract scannable text from hook JSON. Convenience wrapper."""
+    return parse_hook_payload(raw_input).text
+
+
+def _filter_rules_for_context(
+    rules: list[Rule],
+    payload: HookPayload,
+) -> list[Rule]:
+    """Filter rules based on hook context to reduce false positives."""
+    if not payload.hook_event:
+        return rules
+
+    is_stop = payload.hook_event in ("Stop", "SubagentStop")
+
+    filtered = []
+    for rule in rules:
+        if is_stop and rule.name in _CODE_ONLY_RULES:
+            continue
+        if not is_stop and rule.name in _CONVERSATION_ONLY_RULES:
+            continue
+        filtered.append(rule)
+    return filtered
 
 
 def check_hook_input(
@@ -182,8 +268,24 @@ def check_hook_input(
     rules: list[Rule],
     instructions: list[str] | None = None,
 ) -> list[Violation]:
-    combined = extract_hook_text(raw_input)
-    return check_text(combined, rules, instructions=instructions)
+    payload = parse_hook_payload(raw_input)
+
+    # Skip proactive tick messages (KAIROS autonomous mode)
+    if payload.is_proactive_tick:
+        return []
+
+    filtered = _filter_rules_for_context(rules, payload)
+    violations = check_text(payload.text, filtered, instructions=instructions)
+
+    # PostToolUse: scan tool output for false-completion (skip read-only tools)
+    _READ_TOOLS = {"Read", "Glob", "Grep", "ToolSearch", "LSP"}
+    if (payload.tool_output
+            and payload.hook_event == "PostToolUse"
+            and payload.tool_name not in _READ_TOOLS):
+        fc_rules = [r for r in rules if r.name == "no-false-completion"]
+        violations.extend(check_text(payload.tool_output, fc_rules))
+
+    return violations
 
 
 def max_severity(violations: list[Violation]) -> Severity | None:

@@ -46,6 +46,7 @@ Tests can be added later in a follow-up PR."
 | **Simplified delivery** | "Here's a simplified version" | BLOCK |
 | **Out of scope dodge** | "That's beyond the scope of this change" | BLOCK |
 | **Ellipsis truncation** | `// ... rest of implementation` | BLOCK |
+| **False completion** | "I've implemented all the changes" | WARN |
 | **Hedging** | "I think we should probably..." | INFO |
 
 ## Install
@@ -123,6 +124,22 @@ Add to `.claude/settings.json`:
 - **PreToolUse** — scans code Claude is about to write (catches placeholder code, ellipsis truncation, TODO stubs)
 - **Stop** — scans Claude's conversational response (catches scope reduction, option offering, deferral, test skipping)
 
+You can also add `SubagentStop` and `PostToolUse` hooks for full coverage:
+
+```json
+{
+  "hooks": {
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "morpheus-ai check --stdin --pack strict"}]}],
+    "PostToolUse": [{"hooks": [{"type": "command", "command": "morpheus-ai check --stdin --pack strict"}]}]
+  }
+}
+```
+
+- **SubagentStop** — catches lazy patterns from subagents (same as Stop)
+- **PostToolUse** — scans tool output for false-completion claims
+
+morpheus-ai automatically applies the right rules per hook type — code rules for Write/Edit, conversation rules for Stop, reducing false positives.
+
 ### As a Python library
 
 ```python
@@ -148,8 +165,8 @@ Three built-in packs with increasing strictness:
 | Pack | Rules | Use when |
 |------|-------|----------|
 | **`light`** | 6 rules | Getting started, want minimal friction |
-| **`standard`** | 12 rules | Default. Catches common lazy patterns |
-| **`strict`** | 18 rules | Zero tolerance. Catches everything |
+| **`standard`** | 13 rules | Default. Catches common lazy patterns |
+| **`strict`** | 19 rules | Zero tolerance. Catches everything |
 
 ```bash
 morpheus-ai check --pack strict --stdin    # strictest
@@ -277,6 +294,9 @@ stats:
 
 audit:
   enabled: true           # local audit log (~/.morpheus-ai/audit.log)
+
+instructions_config:
+  auto_discover: true     # auto-find CLAUDE.md, .cursorrules, etc.
 ```
 
 The tool walks up from the current directory to find `.morpheus-ai.yaml`, so it works from any subdirectory.
@@ -339,7 +359,7 @@ your-ai-tool generate | morpheus-ai check --stdin --pack strict
 - **No secrets access.** It reads text from stdin, runs regex, and exits. It does not parse, store, or transmit any content.
 
 **How to verify:**
-- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 10 Python files, ~800 lines total
+- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 10 Python files, ~1000 lines total
 - The entire detection engine is regex against YAML rule packs — read them in [`src/morpheus_ai/packs/`](https://github.com/bhusingh/morpheus-ai/tree/main/src/morpheus_ai/packs)
 - CI runs on every push: tests, lint, build verification
 

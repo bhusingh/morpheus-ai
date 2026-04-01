@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from morpheus_ai.config import Config, find_config, load_config
+from morpheus_ai.config import Config, discover_instruction_files, find_config, load_config
 
 
 def test_default_config():
@@ -91,3 +91,29 @@ def test_find_config_none(tmp_path):
     # may find the project's own config if running from the repo,
     # so we just check it doesn't crash
     assert found is None or found.name == ".morpheus-ai.yaml"
+
+
+def test_discover_instruction_files(tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# Instructions")
+    (tmp_path / ".cursorrules").write_text("rules here")
+    (tmp_path / ".github").mkdir()
+    (tmp_path / ".github" / "copilot-instructions.md").write_text("copilot")
+    found = discover_instruction_files(tmp_path)
+    assert len(found) == 3
+    names = [Path(f).name for f in found]
+    assert "CLAUDE.md" in names
+    assert ".cursorrules" in names
+    assert "copilot-instructions.md" in names
+
+
+def test_discover_instruction_files_empty(tmp_path):
+    found = discover_instruction_files(tmp_path)
+    assert found == []
+
+
+def test_auto_instructions_config():
+    cfg = Config.from_dict({"instructions_config": {"auto_discover": False}})
+    assert cfg.auto_instructions is False
+
+    cfg2 = Config()
+    assert cfg2.auto_instructions is True

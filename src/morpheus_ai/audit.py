@@ -28,6 +28,8 @@ def write_entry(
     pack: str,
     input_bytes: int,
     rules_count: int,
+    tool_name: str = "",
+    speculation: bool = False,
     path: Path | None = None,
 ) -> None:
     """Append one audit entry. Never raises."""
@@ -44,6 +46,10 @@ def write_entry(
             "blocked": blocked,
             "matched_rules": sorted({v.rule.name for v in violations}),
         }
+        if tool_name:
+            entry["tool"] = tool_name
+        if speculation:
+            entry["speculation"] = True
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "a") as f:
             f.write(json.dumps(entry) + "\n")

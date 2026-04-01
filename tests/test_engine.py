@@ -204,7 +204,7 @@ class TestCheckHookInput:
     def test_stop_hook_clean_message(self):
         data = json.dumps({
             "hook_event_name": "Stop",
-            "last_assistant_message": "I've implemented all the changes with tests.",
+            "last_assistant_message": "The migration adds a nullable column to the users table.",
             "session_id": "abc123",
         })
         violations = check_hook_input(data, self.rules)

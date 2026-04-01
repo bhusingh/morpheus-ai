@@ -278,3 +278,19 @@ rules:
         - "We could save money by using spot instances instead"
       no_match:
         - "Cost: 8x g5.xlarge on-demand = $8.05/hr"
+
+  - name: no-false-completion
+    severity: WARN
+    description: Agent claiming completion without evidence of actual work
+    patterns:
+      - "(?i)\\b(?:I'?ve|I have) (?:implemented|completed|finished|done|made|applied) (?:all|every|each|the) [^\\n]{0,30}(?:changes?|updates?|fixes?|modifications?)\\b"
+      - "(?i)\\beverything (?:is|should be|looks) (?:working|ready|good|done|set|in place)\\b"
+      - "(?i)\\b(?:all (?:tests? )?pass|all (?:checks? )?pass)\\b[^\\n]{0,20}(?:and|so|now|ready|the)"
+    examples:
+      match:
+        - "I've implemented all the requested changes"
+        - "Everything is working now"
+        - "All tests pass and the feature is ready"
+      no_match:
+        - "The build completed successfully"
+        - "All 200 tests pass in 0.64s"

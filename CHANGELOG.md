@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-04-01
+
+### Added
+
+- **Context-aware hook support**: SubagentStop, PostToolUse, and improved PreToolUse/Stop parsing
+- **Structured hook payload parsing**: extracts hook_event_name, tool_name, tool_output from JSON
+- **Smart rule filtering**: code-only rules (placeholder, delegation) skip Stop hooks; conversation-only rules (options, confirmation, planning) skip Bash/Read hooks — reduces false positives
+- **False-completion rule**: catches "I've implemented all the changes" / "Everything is working" claims (WARN in strict, INFO in standard)
+- Rule counts: light 6, standard 13, strict 19
+- `HookPayload` and `parse_hook_payload()` added to public API
+- `tool_name` and `speculation` fields in audit log entries
+- Audit display shows tool name per entry
+- **KAIROS/proactive mode**: `<tick>` messages auto-skipped (no false positives)
+- **Auto-discovery of instruction files**: CLAUDE.md, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .windsurfrules, .clinerules
+- **`--suggest-fix` flag**: outputs JSON fix guidance on stdout when blocking (hook response mode)
+- **Speculation tracking**: speculative tool calls detected and tagged in audit
+- 262 tests
+
 ## 0.2.0 — 2026-03-31
 
 ### Added
