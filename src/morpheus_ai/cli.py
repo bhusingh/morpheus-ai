@@ -100,7 +100,10 @@ def check(
             speculation=is_speculation,
         )
 
-    if max_severity(violations) == Severity.BLOCK:
+    # Stop/SubagentStop: response already delivered — log but don't block
+    is_post_response = hook_event in ("Stop", "SubagentStop")
+
+    if max_severity(violations) == Severity.BLOCK and not is_post_response:
         if suggest_fix:
             _output_fix_suggestion(violations)
         raise SystemExit(2)

@@ -382,3 +382,55 @@ class TestSuggestFixOutput:
         )
         assert result.exit_code == 0
         assert result.output == ""
+
+
+class TestStopHookExitBehavior:
+    """Stop hooks should log violations but never exit 2 (response already sent)."""
+
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    def test_should_exit_0_on_stop_block(self):
+        from morpheus_ai.cli import main
+
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "We could just skip the tests.",
+        })
+        result = self.runner.invoke(
+            main,
+            ["check", "--stdin", "--pack", "strict", "--no-audit", "--no-stats"],
+            input=data,
+        )
+        assert result.exit_code == 0
+        # violations go to stderr, not stdout
+        assert "no-scope-reduction" not in result.output
+
+    def test_should_exit_0_on_subagent_stop_block(self):
+        from morpheus_ai.cli import main
+
+        data = json.dumps({
+            "hook_event_name": "SubagentStop",
+            "last_assistant_message": "Option A: fast\nOption B: slow",
+        })
+        result = self.runner.invoke(
+            main,
+            ["check", "--stdin", "--pack", "strict", "--no-audit", "--no-stats"],
+            input=data,
+        )
+        assert result.exit_code == 0
+
+    def test_should_still_exit_2_on_pretooluse_block(self):
+        from morpheus_ai.cli import main
+
+        data = json.dumps({
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {"content": "raise NotImplementedError"},
+        })
+        result = self.runner.invoke(
+            main,
+            ["check", "--stdin", "--pack", "strict", "--no-audit", "--no-stats"],
+            input=data,
+        )
+        assert result.exit_code == 2
