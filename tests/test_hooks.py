@@ -113,6 +113,9 @@ class TestContextAwareFiltering:
         filtered = _filter_rules_for_context(self.rules, payload)
         names = {r.name for r in filtered}
         assert "no-option-offering" not in names
+        assert "no-rest-nudging" not in names
+        assert "no-panic-pivots" not in names
+        assert "no-duration-scaring" not in names
         assert "no-premature-confirmation" not in names
         assert "no-placeholder-code" in names
 
@@ -125,6 +128,9 @@ class TestContextAwareFiltering:
         filtered = _filter_rules_for_context(self.rules, payload)
         names = {r.name for r in filtered}
         assert "no-option-offering" not in names
+        assert "no-rest-nudging" not in names
+        assert "no-panic-pivots" not in names
+        assert "no-duration-scaring" not in names
         assert "no-placeholder-code" in names
         assert "no-scope-reduction" in names
 
@@ -142,6 +148,9 @@ class TestContextAwareFiltering:
         names = {r.name for r in filtered}
         assert "no-premature-confirmation" in names
         assert "no-option-offering" in names
+        assert "no-rest-nudging" in names
+        assert "no-panic-pivots" in names
+        assert "no-duration-scaring" in names
         assert "no-false-completion" in names
 
 
@@ -176,6 +185,30 @@ class TestStopHookDetection:
         assert any(
             v.rule.name == "no-premature-confirmation" for v in violations
         )
+
+    def test_should_catch_rest_nudging_in_stop(self):
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "We've accomplished plenty today. Good night!",
+        })
+        violations = check_hook_input(data, self.rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_should_catch_panic_pivot_in_stop(self):
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "Let's just rewrite it from scratch.",
+        })
+        violations = check_hook_input(data, self.rules)
+        assert any(v.rule.name == "no-panic-pivots" for v in violations)
+
+    def test_should_catch_duration_scaring_in_stop(self):
+        data = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "It's a 9-month task. You can't finish it in 3-4 days.",
+        })
+        violations = check_hook_input(data, self.rules)
+        assert any(v.rule.name == "no-duration-scaring" for v in violations)
 
     def test_should_not_catch_placeholder_in_stop(self):
         data = json.dumps({
@@ -245,6 +278,16 @@ class TestPreToolUseContextFiltering:
             v for v in violations if v.rule.name == "no-option-offering"
         ]
         assert len(option) == 0
+
+    def test_should_not_catch_rest_nudging_in_bash(self):
+        data = json.dumps({
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": "python -c 'import time; time.sleep(1)'"},
+        })
+        violations = check_hook_input(data, self.rules)
+        rest = [v for v in violations if v.rule.name == "no-rest-nudging"]
+        assert len(rest) == 0
 
 
 class TestFalseCompletionRule:

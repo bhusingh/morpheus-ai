@@ -7,7 +7,7 @@
 
 **Stop your AI coding assistant from being lazy.**
 
-AI coding agents (Claude Code, Cursor, Copilot, Codex, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, defer work to "a follow-up PR," and leave placeholder code. You said "build it," they say "should we maybe just...?"
+AI coding agents (Claude Code, Cursor, Copilot, Codex, etc.) have a bad habit: instead of doing what you asked, they suggest shortcuts, skip steps, offer A/B/C options, defer work to "a follow-up PR," tell you to call it a night, scare you with speculative timelines, and leave placeholder code. You said "build it," they say "should we maybe just...?"
 
 `morpheus-ai` catches this in real-time and blocks it.
 
@@ -26,11 +26,12 @@ Tests can be added later in a follow-up PR."
 
 ### What morpheus-ai catches
 
-| Pattern | Example | Severity |
+| Pattern | Example | Severity (strict pack) |
 |---------|---------|----------|
 | **Scope reduction** | "We could skip X for now" | BLOCK |
 | **Option offering** | "Option A / Option B / Option C" | BLOCK |
 | **Deferral** | "We can do this in a follow-up" | BLOCK |
+| **Rest nudging** | "Good night!" / "Go to sleep" | BLOCK |
 | **Test skipping** | "Tests can be added later" | BLOCK |
 | **Placeholder code** | `raise NotImplementedError` | BLOCK |
 | **False blockers** | "We can't do X until Y" | WARN |
@@ -39,6 +40,8 @@ Tests can be added later in a follow-up PR."
 | **Excessive planning** | "Here's my strategy..." | WARN |
 | **Scope warnings** | "This is quite a large change" | WARN |
 | **Unsolicited alternatives** | "A simpler approach would be..." | WARN |
+| **Panic pivots** | "Let's rewrite it from scratch" | BLOCK |
+| **Duration scaring** | "This would take 10 months" | BLOCK |
 | **Error handling deferral** | "Error handling can be added later" | WARN |
 | **Hardcoded shortcuts** | "I'll hardcode the URL for now" | WARN |
 | **Cost scaring** | "This might get expensive" | WARN |
@@ -97,6 +100,9 @@ echo "Option A: fast\nOption B: slow" | morpheus-ai check --stdin --format json
 
 # GitHub Actions annotation format
 morpheus-ai check --stdin --format github < response.txt
+
+# Hook response mode with retry guidance
+morpheus-ai check --stdin --pack strict --suggest-fix
 ```
 
 ### As a Claude Code hook (real-time blocking)
@@ -132,7 +138,7 @@ Add to `.claude/settings.json`:
 ```
 
 - **PreToolUse** — scans code Claude is about to write (catches placeholder code, ellipsis truncation, TODO stubs)
-- **Stop** — scans Claude's conversational response (catches scope reduction, option offering, deferral, test skipping)
+- **Stop** — scans Claude's conversational response (catches scope reduction, option offering, deferral, rest nudging, panic pivots, duration scaring, test skipping)
 
 You can also add `SubagentStop` and `PostToolUse` hooks for full coverage:
 
@@ -175,8 +181,8 @@ Three built-in packs with increasing strictness:
 | Pack | Rules | Use when |
 |------|-------|----------|
 | **`light`** | 6 rules | Getting started, want minimal friction |
-| **`standard`** | 13 rules | Default. Catches common lazy patterns |
-| **`strict`** | 19 rules | Zero tolerance. Catches everything |
+| **`standard`** | 16 rules | Default. Catches common lazy patterns |
+| **`strict`** | 22 rules | Zero tolerance. Catches everything |
 
 ```bash
 morpheus-ai check --pack strict --stdin    # strictest
@@ -202,8 +208,8 @@ rules:
 # Use a pack + custom rules (merged)
 morpheus-ai check --pack standard --rules ./rules/ --stdin
 
-# Enforce instruction files (CLAUDE.md, .cursorrules)
-morpheus-ai check --stdin --instructions CLAUDE.md --pack strict
+# Enforce instruction files (AGENTS.md, CLAUDE.md, .cursorrules)
+morpheus-ai check --stdin --instructions AGENTS.md --pack strict
 
 # Initialize a project with example config and rules
 morpheus-ai init
@@ -293,6 +299,7 @@ rules:
   # custom: ./rules/      # path to custom rules directory
 
 # instructions:           # instruction files to enforce
+#   - AGENTS.md
 #   - CLAUDE.md
 #   - .cursorrules
 
@@ -306,7 +313,7 @@ audit:
   enabled: true           # local audit log (~/.morpheus-ai/audit.log)
 
 instructions_config:
-  auto_discover: true     # auto-find CLAUDE.md, .cursorrules, etc.
+  auto_discover: true     # auto-find AGENTS.md, CLAUDE.md, .cursorrules, etc.
 ```
 
 The tool walks up from the current directory to find `.morpheus-ai.yaml`, so it works from any subdirectory.
@@ -369,7 +376,7 @@ your-ai-tool generate | morpheus-ai check --stdin --pack strict
 - **No secrets access.** It reads text from stdin, runs regex, and exits. It does not parse, store, or transmit any content.
 
 **How to verify:**
-- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 10 Python files, ~1000 lines total
+- Source: [github.com/bhusingh/morpheus-ai](https://github.com/bhusingh/morpheus-ai) — 10 core Python files, ~1,000 lines total
 - The entire detection engine is regex against YAML rule packs — read them in [`src/morpheus_ai/packs/`](https://github.com/bhusingh/morpheus-ai/tree/main/src/morpheus_ai/packs)
 - CI runs on every push: tests, lint, build verification
 
@@ -377,7 +384,7 @@ your-ai-tool generate | morpheus-ai check --stdin --pack strict
 
 Tools like `ruff`, `mypy`, and `eslint` check **code quality** — syntax, types, style.
 
-`morpheus-ai` checks **AI behavioral patterns** — when your AI assistant tries to reduce scope, skip tests, offer A/B/C options, or defer work you explicitly asked for. These are not code problems. They are compliance problems that no code linter catches.
+`morpheus-ai` checks **AI behavioral patterns** — when your AI assistant tries to reduce scope, skip tests, offer A/B/C options, defer work you explicitly asked for, nudge you to sleep, scare you with speculative timelines, or jump to drastic rewrites. These are not code problems. They are compliance problems that no code linter catches.
 
 You should use both. They solve different problems.
 

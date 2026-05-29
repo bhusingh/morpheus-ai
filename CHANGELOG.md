@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.1 — 2026-05-29
+
+### Added
+
+- **Rest nudging rule**: catches unsolicited "good night", "go to sleep", "call it a night", and similar shutdown prompts
+- **Panic pivot rule**: catches drastic rewrite/abandonment suggestions such as "rewrite it from scratch"
+- **Duration scaring rule**: catches speculative long-timeline discouragement such as "it's a 9-month task" or "you can't finish this in 3-4 days"
+- Hook filtering keeps the new rules conversation-only, avoiding false positives in tool/code contexts
+- **AGENTS.md auto-discovery** for Codex-native instruction enforcement
+- Rule counts: light 6, standard 16, strict 22
+- 307 tests
+
+### Changed
+
+- Development status is described as alpha-quality to match current release guidance
+
 ## 0.3.0 — 2026-04-01
 
 ### Added

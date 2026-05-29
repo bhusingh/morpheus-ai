@@ -179,6 +179,7 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert (tmp_path / ".morpheus-ai.yaml").exists()
         assert (tmp_path / "rules" / "custom.yaml").exists()
+        assert "instructions_config" in (tmp_path / ".morpheus-ai.yaml").read_text()
 
     def test_init_idempotent(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)

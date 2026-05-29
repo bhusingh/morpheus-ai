@@ -5,6 +5,7 @@ rules:
   custom: ./rules/
 
 instructions:
+  - AGENTS.md
   - CLAUDE.md
 
 output:

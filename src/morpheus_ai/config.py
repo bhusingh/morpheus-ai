@@ -12,6 +12,7 @@ CONFIG_FILENAME = ".morpheus-ai.yaml"
 
 # Instruction files auto-discovered from AI coding tools
 _INSTRUCTION_FILES = [
+    "AGENTS.md",
     "CLAUDE.md",
     ".cursorrules",
     ".cursor/rules",

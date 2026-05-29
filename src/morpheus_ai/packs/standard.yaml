@@ -27,6 +27,15 @@ rules:
       - "(?i)\\b(?:later|afterwards|in a follow-up|next session)\\b[^\\n]{0,30}\\b(?:we can|I'll|let's)\\b"
       - "(?i)\\bleave [^\\n]{0,30} for (?:later|now|another|a future)\\b"
 
+  - name: no-rest-nudging
+    severity: BLOCK
+    description: Agent must not push sleep, rest, or time-of-day shutdowns unless asked
+    patterns:
+      - "(?i)\\b(?:go to (?:bed|sleep)|get some sleep|you should (?:sleep|rest|get some rest)|time to (?:sleep|rest)|call it a night|wrap (?:it|this) up for (?:the )?(?:night|today))\\b"
+      - "(?i)(?:^|[.!?]\\s+)(?:good night|goodnight)[!.]?(?:\\s|$)"
+      - "(?i)\\b(?:we'?ve|we have) accomplished (?:plenty|enough|a lot) (?:today|for now)\\b"
+      - "(?i)\\b(?:tomorrow|in the morning)\\b[^\\n]{0,40}\\b(?:we can|let's|I can|I'll|continue|resume|pick (?:this|it) up)\\b"
+
   - name: no-premature-confirmation
     severity: WARN
     description: Agent should not ask permission for what was already requested
@@ -52,6 +61,22 @@ rules:
     patterns:
       - "(?i)\\b(?:alternatively|a different approach)\\b[^\\n]{0,40}\\b(?:we could|you could|let's|consider)\\b"
       - "(?i)\\ba (?:simpler|cleaner|better|easier) (?:way|approach) (?:would be|might be|is)\\b"
+
+  - name: no-panic-pivots
+    severity: WARN
+    description: Agent should not jump to drastic rewrites or abandonment after friction
+    patterns:
+      - "(?i)\\b(?:nuke|scrap|throw away|abandon) (?:the|this|our )?[^\\n]{0,35}\\b(?:approach|implementation|work|changes?|code|repo)\\b"
+      - "(?i)\\b(?:start|rewrite|rebuild) [^\\n]{0,20}from scratch\\b"
+      - "(?i)\\b(?:full|complete|total) (?:rewrite|rebuild|reset)\\b[^\\n]{0,30}\\b(?:instead|safer|better|easier|cleaner)\\b"
+
+  - name: no-duration-scaring
+    severity: WARN
+    description: Agent should not use speculative long timelines to discourage requested work
+    patterns:
+      - "(?i)\\b(?:it'?s|it is|this (?:is|looks like|seems like|would be)|that (?:is|looks like|seems like|would be)) (?:a )?(?:\\d+|several|many|multiple)\\s*[- ]?(?:month|week|year)s? (?:task|project|effort|job)\\b"
+      - "(?i)\\b(?:will|would|could|might|may) (?:take|need|require) (?:\\d+|several|many|multiple)\\s+(?:months?|weeks?|years?)\\b"
+      - "(?i)\\b(?:can'?t|cannot|won'?t be able to|impossible to)\\b[^\\n]{0,40}\\b(?:finish|complete|deliver|build|implement)\\b[^\\n]{0,40}\\b(?:in|within)\\b[^\\n]{0,20}\\b(?:days?|weeks?|3-4 days|a few days)\\b"
 
   - name: no-test-skipping
     severity: BLOCK

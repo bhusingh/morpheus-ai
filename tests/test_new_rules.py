@@ -102,6 +102,114 @@ class TestHardcodedShortcuts:
         assert len(hc) == 0
 
 
+class TestRestNudging:
+    def setup_method(self):
+        self.rules = load_pack("strict")
+
+    def test_good_night(self):
+        violations = check_text("Good night!", self.rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_go_to_sleep(self):
+        text = "Go to sleep and we can continue tomorrow."
+        violations = check_text(text, self.rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_accomplished_plenty_today(self):
+        violations = check_text("We've accomplished plenty today.", self.rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_tomorrow_resume(self):
+        violations = check_text("Tomorrow we can pick this up.", self.rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_standard_pack_blocks_rest_nudge(self):
+        rules = load_pack("standard")
+        violations = check_text("You should get some sleep.", rules)
+        assert any(v.rule.name == "no-rest-nudging" for v in violations)
+
+    def test_false_positive_sleep_function(self):
+        violations = check_text("The sleep function pauses the worker thread", self.rules)
+        rest = [v for v in violations if v.rule.name == "no-rest-nudging"]
+        assert len(rest) == 0
+
+    def test_false_positive_goodnight_component(self):
+        text = "The GoodNight component renders the closing screen"
+        violations = check_text(text, self.rules)
+        rest = [v for v in violations if v.rule.name == "no-rest-nudging"]
+        assert len(rest) == 0
+
+
+class TestPanicPivots:
+    def setup_method(self):
+        self.rules = load_pack("strict")
+
+    def test_rewrite_from_scratch(self):
+        violations = check_text("Let's just rewrite it from scratch.", self.rules)
+        assert any(v.rule.name == "no-panic-pivots" for v in violations)
+
+    def test_scrap_this_approach(self):
+        text = "We should scrap this approach and rebuild the feature."
+        violations = check_text(text, self.rules)
+        assert any(v.rule.name == "no-panic-pivots" for v in violations)
+
+    def test_full_rewrite(self):
+        violations = check_text("A full rewrite would be cleaner instead.", self.rules)
+        assert any(v.rule.name == "no-panic-pivots" for v in violations)
+
+    def test_standard_pack_warns_on_panic_pivot(self):
+        rules = load_pack("standard")
+        violations = check_text("Let's just rewrite it from scratch.", rules)
+        panic = [v for v in violations if v.rule.name == "no-panic-pivots"]
+        assert len(panic) == 1
+        assert panic[0].severity.value == "WARN"
+
+    def test_false_positive_rewrite_description(self):
+        violations = check_text("The rewrite removes duplicated code.", self.rules)
+        panic = [v for v in violations if v.rule.name == "no-panic-pivots"]
+        assert len(panic) == 0
+
+
+class TestDurationScaring:
+    def setup_method(self):
+        self.rules = load_pack("strict")
+
+    def test_month_task(self):
+        violations = check_text("It's a 9-month task.", self.rules)
+        assert any(v.rule.name == "no-duration-scaring" for v in violations)
+
+    def test_would_take_months(self):
+        violations = check_text("This would take 10 months.", self.rules)
+        assert any(v.rule.name == "no-duration-scaring" for v in violations)
+
+    def test_cannot_finish_in_days(self):
+        violations = check_text("You can't finish this in 3-4 days.", self.rules)
+        assert any(v.rule.name == "no-duration-scaring" for v in violations)
+
+    def test_unrealistic_timeline(self):
+        text = "That timeline is unrealistic for a few days."
+        violations = check_text(text, self.rules)
+        assert any(v.rule.name == "no-duration-scaring" for v in violations)
+
+    def test_standard_pack_warns_on_duration_scaring(self):
+        rules = load_pack("standard")
+        violations = check_text("This would take several months.", rules)
+        duration = [v for v in violations if v.rule.name == "no-duration-scaring"]
+        assert len(duration) == 1
+        assert duration[0].severity.value == "WARN"
+
+    def test_false_positive_contract_duration(self):
+        violations = check_text("The contract lasts 9 months.", self.rules)
+        duration = [v for v in violations if v.rule.name == "no-duration-scaring"]
+        assert len(duration) == 0
+
+    def test_false_positive_roadmap_duration(self):
+        text = "The roadmap spans 10 months across three releases."
+        violations = check_text(text, self.rules)
+        duration = [v for v in violations if v.rule.name == "no-duration-scaring"]
+        assert len(duration) == 0
+
+
 class TestUserDelegation:
     def setup_method(self):
         self.rules = load_pack("strict")

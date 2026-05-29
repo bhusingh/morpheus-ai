@@ -34,7 +34,7 @@ def main() -> None:
 @click.option("--pack", default=None, help="Rule pack: strict, standard, light.")
 @click.option("--rules", "rules_dir", default=None, help="Custom rules directory.")
 @click.option("--instructions", "instructions_path", default=None,
-              help="Instruction file to enforce (e.g. CLAUDE.md).")
+              help="Instruction file to enforce (e.g. AGENTS.md or CLAUDE.md).")
 @click.option("--format", "fmt", default=None,
               type=click.Choice(["text", "json", "github"]), help="Output format.")
 @click.option("--no-stats", is_flag=True, help="Disable stats recording.")
@@ -247,6 +247,7 @@ def _do_init(config_path: Path, rules_path: Path) -> None:
             "  # custom: ./rules/   # path to custom rules directory\n"
             "\n"
             "# instructions:         # instruction files to enforce\n"
+            "#   - AGENTS.md\n"
             "#   - CLAUDE.md\n"
             "#   - .cursorrules\n"
             "\n"
@@ -258,6 +259,9 @@ def _do_init(config_path: Path, rules_path: Path) -> None:
             "\n"
             "audit:\n"
             "  enabled: true         # local audit log (~/.morpheus-ai/audit.log)\n"
+            "\n"
+            "instructions_config:\n"
+            "  auto_discover: true   # auto-find AGENTS.md, CLAUDE.md, etc.\n"
         )
         click.echo(f"Created {config_path}")
 

@@ -94,13 +94,15 @@ def test_find_config_none(tmp_path):
 
 
 def test_discover_instruction_files(tmp_path):
+    (tmp_path / "AGENTS.md").write_text("# Codex instructions")
     (tmp_path / "CLAUDE.md").write_text("# Instructions")
     (tmp_path / ".cursorrules").write_text("rules here")
     (tmp_path / ".github").mkdir()
     (tmp_path / ".github" / "copilot-instructions.md").write_text("copilot")
     found = discover_instruction_files(tmp_path)
-    assert len(found) == 3
+    assert len(found) == 4
     names = [Path(f).name for f in found]
+    assert "AGENTS.md" in names
     assert "CLAUDE.md" in names
     assert ".cursorrules" in names
     assert "copilot-instructions.md" in names

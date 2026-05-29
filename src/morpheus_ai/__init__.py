@@ -1,6 +1,6 @@
 """morpheus-ai: Stop your AI coding assistant from being lazy."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from morpheus_ai.engine import (
     HookPayload,

@@ -18,6 +18,9 @@ def test_load_strict_pack():
     assert "no-placeholder-code" in names
     assert "no-user-delegation" in names
     assert "no-simplified-delivery" in names
+    assert "no-rest-nudging" in names
+    assert "no-panic-pivots" in names
+    assert "no-duration-scaring" in names
 
 
 def test_load_standard_pack():

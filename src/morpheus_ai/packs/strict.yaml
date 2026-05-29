@@ -62,6 +62,26 @@ rules:
         - "The cron job runs later at midnight UTC"
         - "Backlogged items are tracked in ISSUES-TRACKER.md"
 
+  - name: no-rest-nudging
+    severity: BLOCK
+    description: Agent must not push sleep, rest, or time-of-day shutdowns unless asked
+    patterns:
+      - "(?i)\\b(?:go to (?:bed|sleep)|get some sleep|you should (?:sleep|rest|get some rest)|time to (?:sleep|rest)|call it a night|wrap (?:it|this) up for (?:the )?(?:night|today))\\b"
+      - "(?i)(?:^|[.!?]\\s+)(?:good night|goodnight)[!.]?(?:\\s|$)"
+      - "(?i)\\b(?:we'?ve|we have) accomplished (?:plenty|enough|a lot) (?:today|for now)\\b"
+      - "(?i)\\b(?:tomorrow|in the morning)\\b[^\\n]{0,40}\\b(?:we can|let's|I can|I'll|continue|resume|pick (?:this|it) up)\\b"
+      - "(?i)\\b(?:it'?s|it is) (?:getting )?(?:late|too late)\\b[^\\n]{0,40}\\b(?:sleep|rest|stop|continue tomorrow|call it)\\b"
+    examples:
+      match:
+        - "Good night!"
+        - "Go to sleep and we can continue tomorrow."
+        - "We've accomplished plenty today."
+        - "Tomorrow we can pick this up."
+      no_match:
+        - "The cron job resumes tomorrow at 09:00 UTC"
+        - "The sleep function pauses the worker thread"
+        - "The GoodNight component renders the closing screen"
+
   - name: no-premature-confirmation
     severity: WARN
     description: Agent should not ask for permission to do what was already requested
@@ -232,7 +252,7 @@ rules:
 
   - name: instruction-compliance
     severity: BLOCK
-    description: Agent must follow instruction files (CLAUDE.md, .cursorrules)
+    description: Agent must follow instruction files (AGENTS.md, CLAUDE.md, .cursorrules)
     instruction_check: true
     patterns: []
 
@@ -265,6 +285,42 @@ rules:
       no_match:
         - "The alternative implementation uses async generators"
         - "Alternatively is defined in the glossary"
+
+  - name: no-panic-pivots
+    severity: BLOCK
+    description: Agent must not jump to drastic rewrites or abandonment after friction
+    patterns:
+      - "(?i)\\b(?:nuke|scrap|throw away|abandon) (?:the|this|our )?[^\\n]{0,35}\\b(?:approach|implementation|work|changes?|code|repo)\\b"
+      - "(?i)\\b(?:start|rewrite|rebuild) [^\\n]{0,20}from scratch\\b"
+      - "(?i)\\b(?:full|complete|total) (?:rewrite|rebuild|reset)\\b[^\\n]{0,30}\\b(?:instead|safer|better|easier|cleaner)\\b"
+      - "(?i)\\b(?:switch|migrate) (?:stacks?|frameworks?|languages?|databases?)\\b[^\\n]{0,40}\\b(?:instead|because this is|to avoid)\\b"
+    examples:
+      match:
+        - "Let's just rewrite it from scratch."
+        - "We should scrap this approach and rebuild the feature."
+        - "A full rewrite would be cleaner instead."
+      no_match:
+        - "The rewrite removes duplicated code."
+        - "This migration rewrites URLs during import."
+
+  - name: no-duration-scaring
+    severity: BLOCK
+    description: Agent must not use speculative long timelines to discourage requested work
+    patterns:
+      - "(?i)\\b(?:it'?s|it is|this (?:is|looks like|seems like|would be)|that (?:is|looks like|seems like|would be)) (?:a )?(?:\\d+|several|many|multiple)\\s*[- ]?(?:month|week|year)s? (?:task|project|effort|job)\\b"
+      - "(?i)\\b(?:will|would|could|might|may) (?:take|need|require) (?:\\d+|several|many|multiple)\\s+(?:months?|weeks?|years?)\\b"
+      - "(?i)\\b(?:can'?t|cannot|won'?t be able to|impossible to)\\b[^\\n]{0,40}\\b(?:finish|complete|deliver|build|implement)\\b[^\\n]{0,40}\\b(?:in|within)\\b[^\\n]{0,20}\\b(?:days?|weeks?|3-4 days|a few days)\\b"
+      - "(?i)\\b(?:not realistic|unrealistic|unreasonable)\\b[^\\n]{0,50}\\b(?:days?|weeks?|deadline|timeline|timeframe)\\b"
+    examples:
+      match:
+        - "It's a 9-month task."
+        - "This would take 10 months."
+        - "You can't finish this in 3-4 days."
+        - "That timeline is unrealistic for a few days."
+      no_match:
+        - "The contract lasts 9 months."
+        - "The roadmap spans 10 months across three releases."
+        - "The test fixture uses a 3-4 days window."
 
   - name: no-cost-scaring
     severity: WARN

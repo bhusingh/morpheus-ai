@@ -24,6 +24,7 @@ _CODE_ONLY_RULES = frozenset({
 # Rules that only apply to conversational text (Stop/SubagentStop)
 _CONVERSATION_ONLY_RULES = frozenset({
     "no-option-offering",
+    "no-rest-nudging",
     "no-premature-confirmation",
     "no-excessive-planning",
     "no-scope-creep-warnings",
@@ -31,6 +32,8 @@ _CONVERSATION_ONLY_RULES = frozenset({
     "no-false-blockers",
     "no-cost-scaring",
     "no-false-completion",
+    "no-panic-pivots",
+    "no-duration-scaring",
 })
 
 
